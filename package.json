@@ -1,0 +1,25 @@
+{
+  "name": "css-font-diff",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": { "css-font-diff": "dist/index.js" },
+  "files": ["dist/", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "dev": "node --import tsx/esm src/index.ts",
+    "prepublishOnly": "tsc"
+  },
+  "dependencies": {
+    "chalk": "latest",
+    "commander": "latest",
+    "pixelmatch": "latest",
+    "playwright": "latest",
+    "pngjs": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/pngjs": "latest",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}
