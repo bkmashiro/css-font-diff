@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { test } from 'node:test'
-import { loadConfig } from '../src/config.ts'
+import { initConfig, loadConfig } from '../src/config.ts'
 
 function withTempDir(fn: (dir: string) => void): void {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'css-font-diff-config-'))
@@ -59,5 +59,54 @@ test('loadConfig rejects threshold higher than 100', () => {
     fs.writeFileSync(configPath, JSON.stringify({ defaultThreshold: 101 }))
 
     assert.throws(() => loadConfig(configPath), /defaultThreshold must be between 0 and 100/)
+  })
+})
+
+test('initConfig creates a config file with defaults', () => {
+  withTempDir((dir) => {
+    const configPath = path.join(dir, 'css-font-diff.config.json')
+    const output: string[] = []
+    const originalLog = console.log
+    console.log = (message?: unknown) => {
+      output.push(String(message))
+    }
+
+    try {
+      initConfig(configPath)
+    } finally {
+      console.log = originalLog
+    }
+
+    assert.equal(fs.existsSync(configPath), true)
+    assert.match(output[0] ?? '', /Created .*css-font-diff\.config\.json with defaults\./)
+
+    const config = loadConfig(configPath)
+    assert.equal(config.defaultSelector, 'body')
+    assert.equal(config.defaultWidth, 1280)
+    assert.equal(config.defaultThreshold, 1)
+    assert.deepEqual(config.defaultSelectors, ['h1', 'h2', 'h3', 'p', 'a', 'span'])
+    assert.equal(config.snapshotsDir, 'snapshots')
+  })
+})
+
+test('initConfig does not overwrite an existing config file', () => {
+  withTempDir((dir) => {
+    const configPath = path.join(dir, 'css-font-diff.config.json')
+    fs.writeFileSync(configPath, JSON.stringify({ defaultThreshold: 2.5 }) + '\n')
+    const originalContents = fs.readFileSync(configPath, 'utf-8')
+    const output: string[] = []
+    const originalLog = console.log
+    console.log = (message?: unknown) => {
+      output.push(String(message))
+    }
+
+    try {
+      initConfig(configPath)
+    } finally {
+      console.log = originalLog
+    }
+
+    assert.equal(fs.readFileSync(configPath, 'utf-8'), originalContents)
+    assert.match(output[0] ?? '', /Config file already exists: .*css-font-diff\.config\.json/)
   })
 })

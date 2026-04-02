@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
+  formatCaptureDone,
   formatDiffResults,
   formatDiffStatus,
   formatSummary,
@@ -22,6 +23,15 @@ test('toJsonDiffResult returns the expected JSON structure', () => {
     diff: 4.7,
     threshold: 1,
     passed: false,
+  })
+})
+
+test('toJsonDiffResult marks results as passed at the threshold boundary', () => {
+  assert.deepEqual(toJsonDiffResult('p', 1, 1), {
+    selector: 'p',
+    diff: 1,
+    threshold: 1,
+    passed: true,
   })
 })
 
@@ -53,4 +63,35 @@ test('formatDiffResults returns the expected fail count and summary', () => {
   assert.match(formatted.output, /✓ passed/)
   assert.match(formatted.output, /✗ failed \(4\.7% > 1\.0%\)/)
   assert.match(formatted.output, /Summary: 1 passed, 1 failed/)
+})
+
+test('formatDiffResults includes missing snapshots and green summary when everything passes', () => {
+  const results: RegionDiffResult[] = [
+    {
+      selector: '.hero-title',
+      diffPercent: 0,
+      baseline: 'baseline',
+      compare: 'compare',
+      missing: true,
+    },
+    {
+      selector: 'span',
+      diffPercent: 0.5,
+      baseline: 'baseline',
+      compare: 'compare',
+      missing: false,
+    },
+  ]
+
+  const formatted = formatDiffResults(results, 1)
+
+  assert.equal(formatted.failCount, 0)
+  assert.match(formatted.output, /Comparing font regions\.\.\./)
+  assert.match(formatted.output, /\.hero-title/)
+  assert.match(formatted.output, /snapshot not found/)
+  assert.match(formatted.output, /Summary: 1 passed, 0 failed/)
+})
+
+test('formatCaptureDone reports the saved snapshot path', () => {
+  assert.equal(formatCaptureDone('snapshots/demo-chromium.png'), 'Snapshot saved: snapshots/demo-chromium.png')
 })

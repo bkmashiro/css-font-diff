@@ -1,3 +1,5 @@
+[![npm](https://img.shields.io/npm/v/css-font-diff)](https://www.npmjs.com/package/css-font-diff) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 # css-font-diff
 
 **Detect cross-browser font rendering differences with pixel-level precision.**
