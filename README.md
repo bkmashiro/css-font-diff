@@ -44,12 +44,16 @@ Launches a headless Chromium browser, navigates to the URL, and screenshots the 
 | `--name <name>` | `snapshot` | Snapshot name (used as filename prefix) |
 | `--selector <sel>` | `body` | CSS selector to screenshot |
 | `--width <px>` | `1280` | Viewport width in pixels |
+| `--baseline-update` | off | Rewrite `baseline-*` selector screenshots using configured selectors |
+| `--update-baselines` | off | Alias for `--baseline-update` |
 
 ```bash
 css-font-diff capture --url https://example.com --name v1 --selector "article" --width 1440
+css-font-diff capture --url https://example.com --baseline-update
 ```
 
 Snapshots are saved to `snapshots/<name>-chromium.png`.
+Baseline updates save selector snapshots as `snapshots/baseline-<safe-selector>-chromium.png`.
 
 ---
 
@@ -64,13 +68,16 @@ Compares two named snapshots across a set of CSS selectors. Each selector's regi
 | `--threshold <pct>` | `1.0` | Max allowed pixel diff % before failure |
 | `--selectors <list>` | `h1,h2,h3,p,a,span` | Comma-separated selectors to compare |
 | `--json` | off | Output results as JSON |
+| `--ci-comment` | off | Create or update a GitHub PR comment with the diff report |
 
 ```bash
 css-font-diff diff --baseline v1 --compare v2 --threshold 0.5
 css-font-diff diff --baseline v1 --compare v2 --json
+css-font-diff diff --baseline baseline --compare pr --ci-comment
 ```
 
 Exit code is `1` if any region exceeds the threshold.
+When `--ci-comment` is enabled, `GITHUB_TOKEN` and `GITHUB_REPOSITORY` must be set, and the PR number is read from `GITHUB_PR_NUMBER`, `GITHUB_EVENT_PATH`, or `GITHUB_REF`.
 
 ---
 
@@ -119,17 +126,17 @@ jobs:
           git fetch origin main
           git stash
           git checkout origin/main
-          css-font-diff capture --url http://localhost:3000 --name baseline
+          css-font-diff capture --url http://localhost:3000 --baseline-update
           git checkout -
 
       - name: Start preview server
         run: npm run build && npm run preview &
 
       - name: Capture PR snapshot
-        run: css-font-diff capture --url http://localhost:3000 --name pr
+        run: echo "Capture your compare snapshots into snapshots/pr-<selector>-chromium.png"
 
       - name: Diff snapshots
-        run: css-font-diff diff --baseline baseline --compare pr --threshold 1.0
+        run: css-font-diff diff --baseline baseline --compare pr --selectors h1,p --threshold 1.0 --ci-comment
 ```
 
 ---

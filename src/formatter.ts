@@ -1,5 +1,6 @@
 import chalk from 'chalk'
 import type { RegionDiffResult } from './diff.js'
+import type { UpdatedBaseline } from './capture.js'
 
 const SELECTOR_LABELS: Record<string, string> = {
   h1: 'Title (h1)',
@@ -85,4 +86,15 @@ export function formatDiffResults(
 
 export function formatCaptureDone(outPath: string): string {
   return chalk.green(`Snapshot saved: ${outPath}`)
+}
+
+export function formatBaselineUpdateDone(updated: UpdatedBaseline[]): string {
+  const lines = ['Updating baselines...']
+
+  for (const entry of updated) {
+    lines.push(`  ${chalk.green('✓')} ${chalk.cyan(entry.selector)} -> ${entry.path} updated`)
+  }
+
+  lines.push(`${updated.length} baselines updated.`)
+  return lines.join('\n')
 }

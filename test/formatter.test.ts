@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
+  formatBaselineUpdateDone,
   formatCaptureDone,
   formatDiffResults,
   formatDiffStatus,
@@ -94,4 +95,15 @@ test('formatDiffResults includes missing snapshots and green summary when everyt
 
 test('formatCaptureDone reports the saved snapshot path', () => {
   assert.equal(formatCaptureDone('snapshots/demo-chromium.png'), 'Snapshot saved: snapshots/demo-chromium.png')
+})
+
+test('formatBaselineUpdateDone reports updated selectors and count', () => {
+  const output = formatBaselineUpdateDone([
+    { selector: '.hero-title', path: 'snapshots/baseline-_hero-title-chromium.png' },
+    { selector: '.body-text', path: 'snapshots/baseline-_body-text-chromium.png' },
+  ])
+
+  assert.match(output, /Updating baselines\.\.\./)
+  assert.match(output, /\.hero-title -> snapshots\/baseline-_hero-title-chromium\.png updated/)
+  assert.match(output, /2 baselines updated\./)
 })

@@ -29,6 +29,18 @@ export function snapshotPath(name: string): string {
   return path.join('snapshots', `${name}-chromium.png`)
 }
 
+export function safeSelector(selector: string): string {
+  return selector.replace(/[^a-zA-Z0-9_-]/g, '_')
+}
+
+export function selectorSnapshotPath(
+  snapshotName: string,
+  selector: string,
+  snapshotsDir = 'snapshots'
+): string {
+  return path.join(snapshotsDir, `${snapshotName}-${safeSelector(selector)}-chromium.png`)
+}
+
 export function diffSnapshots(
   baselineName: string,
   compareName: string,
@@ -38,10 +50,8 @@ export function diffSnapshots(
   const results: RegionDiffResult[] = []
 
   for (const selector of selectors) {
-    // Encode selector to a safe filename segment
-    const safeSelector = selector.replace(/[^a-zA-Z0-9_-]/g, '_')
-    const baselinePath = path.join('snapshots', `${baselineName}-${safeSelector}-chromium.png`)
-    const comparePath = path.join('snapshots', `${compareName}-${safeSelector}-chromium.png`)
+    const baselinePath = selectorSnapshotPath(baselineName, selector)
+    const comparePath = selectorSnapshotPath(compareName, selector)
 
     if (!fs.existsSync(baselinePath) || !fs.existsSync(comparePath)) {
       results.push({

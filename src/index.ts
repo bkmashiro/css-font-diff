@@ -1,8 +1,13 @@
 #!/usr/bin/env node
 import { Command } from 'commander'
-import { captureSnapshot } from './capture.js'
+import { captureSnapshot, updateBaselineSnapshots } from './capture.js'
 import { diffSnapshots } from './diff.js'
-import { formatDiffResults, formatCaptureDone } from './formatter.js'
+import {
+  formatBaselineUpdateDone,
+  formatDiffResults,
+  formatCaptureDone,
+} from './formatter.js'
+import { upsertDiffComment } from './github-comment.js'
 import { loadConfig, initConfig } from './config.js'
 
 const program = new Command()
@@ -20,17 +25,40 @@ program
   .option('--name <name>', 'Snapshot name', 'snapshot')
   .option('--selector <sel>', 'CSS selector to screenshot', 'body')
   .option('--width <px>', 'Viewport width in pixels', '1280')
-  .action(async (opts: { url: string; name: string; selector: string; width: string }) => {
-    const config = loadConfig()
-    const width = parseInt(opts.width, 10) || config.defaultWidth
-    try {
-      const outPath = await captureSnapshot(opts.url, opts.name, opts.selector, width)
-      console.log(formatCaptureDone(outPath))
-    } catch (err) {
-      console.error('Capture failed:', err instanceof Error ? err.message : err)
-      process.exit(1)
+  .option('--baseline-update', 'Update baseline screenshots for configured selectors')
+  .option('--update-baselines', 'Alias for --baseline-update')
+  .action(
+    async (opts: {
+      url: string
+      name: string
+      selector: string
+      width: string
+      baselineUpdate?: boolean
+      updateBaselines?: boolean
+    }) => {
+      const config = loadConfig()
+      const width = parseInt(opts.width, 10) || config.defaultWidth
+
+      try {
+        if (opts.baselineUpdate || opts.updateBaselines) {
+          const updated = await updateBaselineSnapshots(
+            opts.url,
+            config.defaultSelectors,
+            width,
+            config.snapshotsDir
+          )
+          console.log(formatBaselineUpdateDone(updated))
+          return
+        }
+
+        const outPath = await captureSnapshot(opts.url, opts.name, opts.selector, width)
+        console.log(formatCaptureDone(outPath))
+      } catch (err) {
+        console.error('Capture failed:', err instanceof Error ? err.message : err)
+        process.exit(1)
+      }
     }
-  })
+  )
 
 // ── diff ───────────────────────────────────────────────────────────────────
 program
@@ -45,6 +73,7 @@ program
     'h1,h2,h3,p,a,span'
   )
   .option('--json', 'Output results as JSON')
+  .option('--ci-comment', 'Create or update a GitHub PR comment with the diff results')
   .action(
     async (opts: {
       baseline: string
@@ -52,6 +81,7 @@ program
       threshold: string
       selectors: string
       json: boolean
+      ciComment?: boolean
     }) => {
       const config = loadConfig()
       const thresholdPct = parseFloat(opts.threshold) || config.defaultThreshold
@@ -63,13 +93,26 @@ program
 
       if (opts.json) {
         console.log(JSON.stringify(results, null, 2))
-        const failed = results.filter((r) => !r.missing && r.diffPercent > thresholdPct)
-        process.exit(failed.length > 0 ? 1 : 0)
       } else {
-        const { output, failCount } = formatDiffResults(results, thresholdPct)
+        const { output } = formatDiffResults(results, thresholdPct)
         console.log(output)
-        process.exit(failCount > 0 ? 1 : 0)
       }
+
+      if (opts.ciComment) {
+        try {
+          const comment = await upsertDiffComment(results, thresholdPct)
+          console.log(`Posting diff results to PR #${comment.prNumber}...`)
+          console.log('')
+          console.log(`${comment.updated ? 'Updated' : 'Posted'} comment:`)
+          console.log(comment.body.replace('<!-- css-font-diff-report -->\n', ''))
+        } catch (err) {
+          console.error('Failed to post PR comment:', err instanceof Error ? err.message : err)
+          process.exit(1)
+        }
+      }
+
+      const failed = results.filter((r) => !r.missing && r.diffPercent > thresholdPct)
+      process.exit(failed.length > 0 ? 1 : 0)
     }
   )
 
