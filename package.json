@@ -26,6 +26,7 @@
   "devDependencies": {
     "@types/node": "latest",
     "@types/pngjs": "latest",
+    "c8": "^11.0.0",
     "tsx": "latest",
     "typescript": "latest"
   }
