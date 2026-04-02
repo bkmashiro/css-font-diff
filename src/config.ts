@@ -19,26 +19,31 @@ const defaults: Config = {
   snapshotsDir: 'snapshots',
 }
 
-export function loadConfig(): Config {
-  try {
-    const configPath = path.resolve(CONFIG_FILE)
-    if (fs.existsSync(configPath)) {
-      const raw = fs.readFileSync(configPath, 'utf-8')
-      const parsed = JSON.parse(raw) as Partial<Config>
-      return { ...defaults, ...parsed }
-    }
-  } catch {
-    // ignore parse errors, use defaults
+function validateConfig(config: Config): Config {
+  if (config.defaultThreshold < 0 || config.defaultThreshold > 100) {
+    throw new Error('Config defaultThreshold must be between 0 and 100')
   }
-  return { ...defaults }
+
+  return config
 }
 
-export function initConfig(): void {
-  const configPath = path.resolve(CONFIG_FILE)
+export function loadConfig(configFile = CONFIG_FILE): Config {
+  const configPath = path.resolve(configFile)
+  if (!fs.existsSync(configPath)) {
+    return { ...defaults }
+  }
+
+  const raw = fs.readFileSync(configPath, 'utf-8')
+  const parsed = JSON.parse(raw) as Partial<Config>
+  return validateConfig({ ...defaults, ...parsed })
+}
+
+export function initConfig(configFile = CONFIG_FILE): void {
+  const configPath = path.resolve(configFile)
   if (fs.existsSync(configPath)) {
-    console.log(`Config file already exists: ${CONFIG_FILE}`)
+    console.log(`Config file already exists: ${configFile}`)
     return
   }
   fs.writeFileSync(configPath, JSON.stringify(defaults, null, 2) + '\n', 'utf-8')
-  console.log(`Created ${CONFIG_FILE} with defaults.`)
+  console.log(`Created ${configFile} with defaults.`)
 }

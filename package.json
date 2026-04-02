@@ -2,11 +2,18 @@
   "name": "css-font-diff",
   "version": "0.1.0",
   "type": "module",
-  "bin": { "css-font-diff": "dist/index.js" },
-  "files": ["dist/", "README.md"],
+  "bin": {
+    "css-font-diff": "dist/index.js"
+  },
+  "files": [
+    "dist/",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "node --import tsx/esm src/index.ts",
+    "pretest": "node --import tsx/esm test/fixtures/generate.ts",
+    "test": "node --import tsx/esm --test test/**/*.test.ts",
     "prepublishOnly": "tsc"
   },
   "dependencies": {

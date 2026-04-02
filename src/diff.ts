@@ -14,6 +14,11 @@ export interface RegionDiffResult {
 export function diffImages(img1Path: string, img2Path: string, threshold = 0.1): number {
   const img1 = PNG.sync.read(fs.readFileSync(img1Path))
   const img2 = PNG.sync.read(fs.readFileSync(img2Path))
+  if (img1.width !== img2.width || img1.height !== img2.height) {
+    throw new Error(
+      `Image dimensions do not match: ${img1.width}x${img1.height} vs ${img2.width}x${img2.height}`
+    )
+  }
   const { width, height } = img1
   const diff = new PNG({ width, height })
   const numDiff = pixelmatch(img1.data, img2.data, diff.data, width, height, { threshold })

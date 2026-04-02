@@ -14,6 +14,38 @@ function labelFor(selector: string): string {
   return SELECTOR_LABELS[selector] ?? selector
 }
 
+export interface JsonDiffResult {
+  selector: string
+  diff: number
+  threshold: number
+  passed: boolean
+}
+
+export function formatDiffStatus(diff: number, thresholdPct: number): string {
+  if (diff > thresholdPct) {
+    return `✗ failed (${diff.toFixed(1)}% > ${thresholdPct.toFixed(1)}%)`
+  }
+
+  return '✓ passed'
+}
+
+export function toJsonDiffResult(
+  selector: string,
+  diff: number,
+  thresholdPct: number
+): JsonDiffResult {
+  return {
+    selector,
+    diff,
+    threshold: thresholdPct,
+    passed: diff <= thresholdPct,
+  }
+}
+
+export function formatSummary(passCount: number, failCount: number): string {
+  return `Summary: ${passCount} passed, ${failCount} failed`
+}
+
 export function formatDiffResults(
   results: RegionDiffResult[],
   thresholdPct: number
@@ -22,6 +54,7 @@ export function formatDiffResults(
   lines.push(chalk.bold('Comparing font regions...'))
 
   let failCount = 0
+  let passCount = 0
 
   for (const r of results) {
     const label = labelFor(r.selector).padEnd(20)
@@ -30,23 +63,21 @@ export function formatDiffResults(
       continue
     }
 
-    const pctStr = `${r.diffPercent.toFixed(1)}% diff`
     if (r.diffPercent > thresholdPct) {
       failCount++
-      lines.push(
-        `  ${chalk.cyan(label)} ${chalk.red(pctStr)}  ${chalk.red('exceeds ' + thresholdPct + '% threshold')}`
-      )
+      lines.push(`  ${chalk.cyan(label)} ${chalk.red(formatDiffStatus(r.diffPercent, thresholdPct))}`)
     } else {
-      lines.push(`  ${chalk.cyan(label)} ${chalk.green(pctStr)}  ${chalk.green('ok')}`)
+      passCount++
+      lines.push(`  ${chalk.cyan(label)} ${chalk.green(formatDiffStatus(r.diffPercent, thresholdPct))}`)
     }
   }
 
   if (failCount === 0) {
     lines.push('')
-    lines.push(chalk.green(`Overall: all regions passed.`))
+    lines.push(chalk.green(formatSummary(passCount, failCount)))
   } else {
     lines.push('')
-    lines.push(chalk.red(`Overall: ${failCount} region(s) failed. Exit code: 1`))
+    lines.push(chalk.red(formatSummary(passCount, failCount)))
   }
 
   return { output: lines.join('\n'), failCount }
