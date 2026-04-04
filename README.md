@@ -141,6 +141,46 @@ jobs:
 
 ---
 
+## GitHub Action
+
+```yaml
+name: Font Diff
+
+on:
+  pull_request:
+
+jobs:
+  font-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run css-font-diff
+        uses: yuzhe/css-font-diff@v0.3.0
+        with:
+          url: http://localhost:3000
+          baseline-name: baseline
+          compare-name: compare
+          selector: body
+          threshold: "0.1"
+          token: ${{ github.token }}
+```
+
+Inputs:
+
+| Input | Default | Description |
+|---|---|---|
+| `baseline-name` | `baseline` | Snapshot name for baseline |
+| `compare-name` | `compare` | Snapshot name for comparison |
+| `url` | *(required)* | URL to capture |
+| `threshold` | `0.1` | Diff threshold percentage |
+| `selector` | `body` | CSS selector to capture and diff |
+| `token` | `github.token` | GitHub token used for PR comments |
+
+The action installs the package dependencies, captures baseline and comparison snapshots for the same URL and selector, then posts a PR comment when `--ci-comment` can resolve the pull request context.
+
+---
+
 ## How It Works
 
 1. **Capture**: `css-font-diff capture` uses [Playwright](https://playwright.dev/) to launch a headless Chromium browser, navigate to the target URL, and take a screenshot of the specified element (or the full page). Screenshots are stored as PNG files in the `snapshots/` directory.

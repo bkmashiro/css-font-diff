@@ -1,0 +1,45 @@
+name: css-font-diff
+description: Capture baseline and comparison snapshots, then diff font rendering changes
+inputs:
+  baseline-name:
+    description: Snapshot name for baseline
+    default: baseline
+  compare-name:
+    description: Snapshot name for comparison
+    default: compare
+  url:
+    description: URL to capture
+    required: true
+  threshold:
+    description: Diff threshold percentage
+    default: "0.1"
+  selector:
+    description: CSS selector
+    default: body
+  token:
+    description: GitHub token for PR comments
+    default: ${{ github.token }}
+runs:
+  using: composite
+  steps:
+    - name: Install deps
+      shell: bash
+      run: npm install --prefix "${{ github.action_path }}" --production
+
+    - name: Run capture baseline
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+      run: node "${{ github.action_path }}/dist/bundle.cjs" capture --url "${{ inputs.url }}" --name "${{ inputs.baseline-name }}" --selector "${{ inputs.selector }}"
+
+    - name: Run capture compare
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+      run: node "${{ github.action_path }}/dist/bundle.cjs" capture --url "${{ inputs.url }}" --name "${{ inputs.compare-name }}" --selector "${{ inputs.selector }}"
+
+    - name: Run diff
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+      run: node "${{ github.action_path }}/dist/bundle.cjs" diff --baseline "${{ inputs.baseline-name }}" --compare "${{ inputs.compare-name }}" --threshold "${{ inputs.threshold }}" --selector "${{ inputs.selector }}" --ci-comment

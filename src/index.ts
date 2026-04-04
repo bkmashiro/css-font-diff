@@ -15,7 +15,7 @@ const program = new Command()
 program
   .name('css-font-diff')
   .description('Detect cross-browser font rendering differences with pixel-level precision')
-  .version('0.1.0')
+  .version('0.3.0')
 
 // ── capture ────────────────────────────────────────────────────────────────
 program
@@ -67,6 +67,7 @@ program
   .requiredOption('--baseline <name>', 'Baseline snapshot name')
   .requiredOption('--compare <name>', 'Comparison snapshot name')
   .option('--threshold <pct>', 'Pixel diff threshold % (default: 1.0)', '1.0')
+  .option('--selector <sel>', 'Single CSS selector to compare')
   .option(
     '--selectors <list>',
     'Comma-separated CSS selectors to compare',
@@ -79,13 +80,16 @@ program
       baseline: string
       compare: string
       threshold: string
+      selector?: string
       selectors: string
       json: boolean
       ciComment?: boolean
     }) => {
       const config = loadConfig()
       const thresholdPct = parseFloat(opts.threshold) || config.defaultThreshold
-      const selectors = opts.selectors
+      const selectors = opts.selector
+        ? [opts.selector]
+        : opts.selectors
         ? opts.selectors.split(',').map((s) => s.trim())
         : config.defaultSelectors
 
