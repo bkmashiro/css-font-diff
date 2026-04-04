@@ -103,48 +103,10 @@ css-font-diff init
 
 ---
 
-## GitHub Actions Example
-
-```yaml
-name: Font Regression Check
-
-on: [pull_request]
-
-jobs:
-  font-diff:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install css-font-diff
-        run: |
-          npm install -g css-font-diff
-          npx playwright install --with-deps chromium
-
-      - name: Capture baseline (main branch)
-        run: |
-          git fetch origin main
-          git stash
-          git checkout origin/main
-          css-font-diff capture --url http://localhost:3000 --baseline-update
-          git checkout -
-
-      - name: Start preview server
-        run: npm run build && npm run preview &
-
-      - name: Capture PR snapshot
-        run: echo "Capture your compare snapshots into snapshots/pr-<selector>-chromium.png"
-
-      - name: Diff snapshots
-        run: css-font-diff diff --baseline baseline --compare pr --selectors h1,p --threshold 1.0 --ci-comment
-```
-
----
-
 ## GitHub Action
 
 ```yaml
-name: Font Diff
+name: Font Regression Check
 
 on:
   pull_request:
@@ -154,6 +116,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Start preview server
+        run: npm run build && npm run preview &
 
       - name: Run css-font-diff
         uses: yuzhe/css-font-diff@v0.3.0
@@ -177,7 +142,7 @@ Inputs:
 | `selector` | `body` | CSS selector to capture and diff |
 | `token` | `github.token` | GitHub token used for PR comments |
 
-The action installs the package dependencies, captures baseline and comparison snapshots for the same URL and selector, then posts a PR comment when `--ci-comment` can resolve the pull request context.
+The action installs the package dependencies, captures baseline and comparison snapshots for the same URL and selector, and posts a PR comment when a GitHub token is available.
 
 ---
 

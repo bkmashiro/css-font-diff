@@ -1,5 +1,5 @@
 name: css-font-diff
-description: Capture baseline and comparison snapshots, then diff font rendering changes
+description: Capture and diff font rendering snapshots in GitHub Actions
 inputs:
   baseline-name:
     description: Snapshot name for baseline
@@ -24,22 +24,51 @@ runs:
   steps:
     - name: Install deps
       shell: bash
-      run: npm install --prefix "${{ github.action_path }}" --production
+      working-directory: ${{ github.action_path }}
+      run: npm install --production
 
-    - name: Run capture baseline
+    - name: Install Playwright browser
       shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npx playwright install --with-deps chromium
+
+    - name: Capture baseline
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm exec -- css-font-diff capture --url "${{ inputs.url }}" --name "${{ inputs.baseline-name }}" --selector "${{ inputs.selector }}"
+
+    - name: Prepare baseline selector snapshot
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        safe_selector="$(printf '%s' "${{ inputs.selector }}" | sed 's/[^[:alnum:]_-]/_/g')"
+        cp "snapshots/${{ inputs.baseline-name }}-chromium.png" "snapshots/${{ inputs.baseline-name }}-${safe_selector}-chromium.png"
+
+    - name: Capture compare
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm exec -- css-font-diff capture --url "${{ inputs.url }}" --name "${{ inputs.compare-name }}" --selector "${{ inputs.selector }}"
+
+    - name: Prepare compare selector snapshot
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        safe_selector="$(printf '%s' "${{ inputs.selector }}" | sed 's/[^[:alnum:]_-]/_/g')"
+        cp "snapshots/${{ inputs.compare-name }}-chromium.png" "snapshots/${{ inputs.compare-name }}-${safe_selector}-chromium.png"
+
+    - name: Diff snapshots
+      shell: bash
+      working-directory: ${{ github.action_path }}
       env:
         GITHUB_TOKEN: ${{ inputs.token }}
-      run: node "${{ github.action_path }}/dist/bundle.cjs" capture --url "${{ inputs.url }}" --name "${{ inputs.baseline-name }}" --selector "${{ inputs.selector }}"
-
-    - name: Run capture compare
-      shell: bash
-      env:
-        GITHUB_TOKEN: ${{ inputs.token }}
-      run: node "${{ github.action_path }}/dist/bundle.cjs" capture --url "${{ inputs.url }}" --name "${{ inputs.compare-name }}" --selector "${{ inputs.selector }}"
-
-    - name: Run diff
-      shell: bash
-      env:
-        GITHUB_TOKEN: ${{ inputs.token }}
-      run: node "${{ github.action_path }}/dist/bundle.cjs" diff --baseline "${{ inputs.baseline-name }}" --compare "${{ inputs.compare-name }}" --threshold "${{ inputs.threshold }}" --selector "${{ inputs.selector }}" --ci-comment
+      run: |
+        args=(
+          --baseline "${{ inputs.baseline-name }}"
+          --compare "${{ inputs.compare-name }}"
+          --threshold "${{ inputs.threshold }}"
+          --selector "${{ inputs.selector }}"
+        )
+        if [ -n "${GITHUB_TOKEN}" ]; then
+          args+=(--ci-comment)
+        fi
+        npm exec -- css-font-diff diff "${args[@]}"
