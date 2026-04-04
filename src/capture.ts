@@ -1,15 +1,27 @@
-import { chromium } from 'playwright'
+import { chromium, firefox, webkit, type BrowserType } from 'playwright'
 import fs from 'fs'
 import path from 'path'
 import { selectorSnapshotPath } from './diff.js'
+
+export type BrowserName = 'chromium' | 'firefox' | 'webkit'
+export const ALL_BROWSERS: BrowserName[] = ['chromium', 'firefox', 'webkit']
+
+function getBrowserType(name: BrowserName): BrowserType {
+  switch (name) {
+    case 'chromium': return chromium
+    case 'firefox': return firefox
+    case 'webkit': return webkit
+  }
+}
 
 export async function captureSnapshot(
   url: string,
   name: string,
   selector: string,
-  width: number
+  width: number,
+  browserName: BrowserName = 'chromium'
 ): Promise<string> {
-  const browser = await chromium.launch()
+  const browser = await getBrowserType(browserName).launch()
   const page = await browser.newPage({ viewport: { width, height: 800 } })
   await page.goto(url, { waitUntil: 'networkidle' })
 
@@ -17,7 +29,7 @@ export async function captureSnapshot(
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
 
   const el = await page.$(selector)
-  const outPath = path.join(dir, `${name}-chromium.png`)
+  const outPath = path.join(dir, `${name}-${browserName}.png`)
   if (el) {
     await el.screenshot({ path: outPath })
   } else {
@@ -30,6 +42,7 @@ export async function captureSnapshot(
 export interface UpdatedBaseline {
   selector: string
   path: string
+  browser: BrowserName
 }
 
 export async function updateBaselineSnapshots(
@@ -37,33 +50,38 @@ export async function updateBaselineSnapshots(
   selectors: string[],
   width: number,
   snapshotsDir = 'snapshots',
-  baselineName = 'baseline'
+  baselineName = 'baseline',
+  browsers: BrowserName[] = ['chromium']
 ): Promise<UpdatedBaseline[]> {
-  const browser = await chromium.launch()
-  const page = await browser.newPage({ viewport: { width, height: 800 } })
+  const updated: UpdatedBaseline[] = []
 
-  try {
-    await page.goto(url, { waitUntil: 'networkidle' })
-
-    if (!fs.existsSync(snapshotsDir)) {
-      fs.mkdirSync(snapshotsDir, { recursive: true })
-    }
-
-    const updated: UpdatedBaseline[] = []
-
-    for (const selector of selectors) {
-      const el = await page.$(selector)
-      if (!el) {
-        throw new Error(`Selector not found while updating baselines: ${selector}`)
-      }
-
-      const outPath = selectorSnapshotPath(baselineName, selector, snapshotsDir)
-      await el.screenshot({ path: outPath })
-      updated.push({ selector, path: outPath })
-    }
-
-    return updated
-  } finally {
-    await browser.close()
+  if (!fs.existsSync(snapshotsDir)) {
+    fs.mkdirSync(snapshotsDir, { recursive: true })
   }
+
+  await Promise.all(
+    browsers.map(async (browserName) => {
+      const browser = await getBrowserType(browserName).launch()
+      const page = await browser.newPage({ viewport: { width, height: 800 } })
+
+      try {
+        await page.goto(url, { waitUntil: 'networkidle' })
+
+        for (const selector of selectors) {
+          const el = await page.$(selector)
+          if (!el) {
+            throw new Error(`Selector not found while updating baselines: ${selector}`)
+          }
+
+          const outPath = selectorSnapshotPath(baselineName, selector, snapshotsDir, browserName)
+          await el.screenshot({ path: outPath })
+          updated.push({ selector, path: outPath, browser: browserName })
+        }
+      } finally {
+        await browser.close()
+      }
+    })
+  )
+
+  return updated
 }

@@ -13,20 +13,20 @@ export function diffImages(img1Path, img2Path, threshold = 0.1) {
     const numDiff = pixelmatch(img1.data, img2.data, diff.data, width, height, { threshold });
     return (numDiff / (width * height)) * 100;
 }
-export function snapshotPath(name) {
-    return path.join('snapshots', `${name}-chromium.png`);
+export function snapshotPath(name, browserName = 'chromium') {
+    return path.join('snapshots', `${name}-${browserName}.png`);
 }
 export function safeSelector(selector) {
     return selector.replace(/[^a-zA-Z0-9_-]/g, '_');
 }
-export function selectorSnapshotPath(snapshotName, selector, snapshotsDir = 'snapshots') {
-    return path.join(snapshotsDir, `${snapshotName}-${safeSelector(selector)}-chromium.png`);
+export function selectorSnapshotPath(snapshotName, selector, snapshotsDir = 'snapshots', browserName = 'chromium') {
+    return path.join(snapshotsDir, `${snapshotName}-${safeSelector(selector)}-${browserName}.png`);
 }
-export function diffSnapshots(baselineName, compareName, selectors, thresholdPct) {
+export function diffSnapshots(baselineName, compareName, selectors, thresholdPct, browserName = 'chromium') {
     const results = [];
     for (const selector of selectors) {
-        const baselinePath = selectorSnapshotPath(baselineName, selector);
-        const comparePath = selectorSnapshotPath(compareName, selector);
+        const baselinePath = selectorSnapshotPath(baselineName, selector, 'snapshots', browserName);
+        const comparePath = selectorSnapshotPath(compareName, selector, 'snapshots', browserName);
         if (!fs.existsSync(baselinePath) || !fs.existsSync(comparePath)) {
             results.push({
                 selector,
@@ -34,6 +34,7 @@ export function diffSnapshots(baselineName, compareName, selectors, thresholdPct
                 baseline: baselinePath,
                 compare: comparePath,
                 missing: true,
+                browser: browserName,
             });
             continue;
         }
@@ -45,6 +46,7 @@ export function diffSnapshots(baselineName, compareName, selectors, thresholdPct
                 baseline: baselinePath,
                 compare: comparePath,
                 missing: false,
+                browser: browserName,
             });
         }
         catch (err) {
@@ -54,8 +56,30 @@ export function diffSnapshots(baselineName, compareName, selectors, thresholdPct
                 baseline: baselinePath,
                 compare: comparePath,
                 missing: true,
+                browser: browserName,
             });
         }
     }
     return results;
+}
+export function diffSnapshotsAllBrowsers(baselineName, compareName, selectors, thresholdPct, browsers) {
+    return selectors.map((selector) => {
+        const browserResults = {};
+        for (const browserName of browsers) {
+            const baselinePath = selectorSnapshotPath(baselineName, selector, 'snapshots', browserName);
+            const comparePath = selectorSnapshotPath(compareName, selector, 'snapshots', browserName);
+            if (!fs.existsSync(baselinePath) || !fs.existsSync(comparePath)) {
+                browserResults[browserName] = { diffPercent: 0, missing: true };
+                continue;
+            }
+            try {
+                const diffPercent = diffImages(baselinePath, comparePath, thresholdPct / 100);
+                browserResults[browserName] = { diffPercent, missing: false };
+            }
+            catch {
+                browserResults[browserName] = { diffPercent: 0, missing: true };
+            }
+        }
+        return { selector, browsers: browserResults };
+    });
 }

@@ -2,6 +2,7 @@ import { PNG } from 'pngjs'
 import pixelmatch from 'pixelmatch'
 import fs from 'fs'
 import path from 'path'
+import type { BrowserName } from './capture.js'
 
 export interface RegionDiffResult {
   selector: string
@@ -9,6 +10,12 @@ export interface RegionDiffResult {
   baseline: string
   compare: string
   missing: boolean
+  browser?: BrowserName
+}
+
+export interface MultiBrowserDiffResult {
+  selector: string
+  browsers: Record<BrowserName, { diffPercent: number; missing: boolean }>
 }
 
 export function diffImages(img1Path: string, img2Path: string, threshold = 0.1): number {
@@ -25,8 +32,8 @@ export function diffImages(img1Path: string, img2Path: string, threshold = 0.1):
   return (numDiff / (width * height)) * 100
 }
 
-export function snapshotPath(name: string): string {
-  return path.join('snapshots', `${name}-chromium.png`)
+export function snapshotPath(name: string, browserName: BrowserName = 'chromium'): string {
+  return path.join('snapshots', `${name}-${browserName}.png`)
 }
 
 export function safeSelector(selector: string): string {
@@ -36,22 +43,24 @@ export function safeSelector(selector: string): string {
 export function selectorSnapshotPath(
   snapshotName: string,
   selector: string,
-  snapshotsDir = 'snapshots'
+  snapshotsDir = 'snapshots',
+  browserName: BrowserName = 'chromium'
 ): string {
-  return path.join(snapshotsDir, `${snapshotName}-${safeSelector(selector)}-chromium.png`)
+  return path.join(snapshotsDir, `${snapshotName}-${safeSelector(selector)}-${browserName}.png`)
 }
 
 export function diffSnapshots(
   baselineName: string,
   compareName: string,
   selectors: string[],
-  thresholdPct: number
+  thresholdPct: number,
+  browserName: BrowserName = 'chromium'
 ): RegionDiffResult[] {
   const results: RegionDiffResult[] = []
 
   for (const selector of selectors) {
-    const baselinePath = selectorSnapshotPath(baselineName, selector)
-    const comparePath = selectorSnapshotPath(compareName, selector)
+    const baselinePath = selectorSnapshotPath(baselineName, selector, 'snapshots', browserName)
+    const comparePath = selectorSnapshotPath(compareName, selector, 'snapshots', browserName)
 
     if (!fs.existsSync(baselinePath) || !fs.existsSync(comparePath)) {
       results.push({
@@ -60,6 +69,7 @@ export function diffSnapshots(
         baseline: baselinePath,
         compare: comparePath,
         missing: true,
+        browser: browserName,
       })
       continue
     }
@@ -72,6 +82,7 @@ export function diffSnapshots(
         baseline: baselinePath,
         compare: comparePath,
         missing: false,
+        browser: browserName,
       })
     } catch (err) {
       results.push({
@@ -80,9 +91,41 @@ export function diffSnapshots(
         baseline: baselinePath,
         compare: comparePath,
         missing: true,
+        browser: browserName,
       })
     }
   }
 
   return results
+}
+
+export function diffSnapshotsAllBrowsers(
+  baselineName: string,
+  compareName: string,
+  selectors: string[],
+  thresholdPct: number,
+  browsers: BrowserName[]
+): MultiBrowserDiffResult[] {
+  return selectors.map((selector) => {
+    const browserResults = {} as Record<BrowserName, { diffPercent: number; missing: boolean }>
+
+    for (const browserName of browsers) {
+      const baselinePath = selectorSnapshotPath(baselineName, selector, 'snapshots', browserName)
+      const comparePath = selectorSnapshotPath(compareName, selector, 'snapshots', browserName)
+
+      if (!fs.existsSync(baselinePath) || !fs.existsSync(comparePath)) {
+        browserResults[browserName] = { diffPercent: 0, missing: true }
+        continue
+      }
+
+      try {
+        const diffPercent = diffImages(baselinePath, comparePath, thresholdPct / 100)
+        browserResults[browserName] = { diffPercent, missing: false }
+      } catch {
+        browserResults[browserName] = { diffPercent: 0, missing: true }
+      }
+    }
+
+    return { selector, browsers: browserResults }
+  })
 }

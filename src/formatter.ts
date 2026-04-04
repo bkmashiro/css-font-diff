@@ -1,6 +1,6 @@
 import chalk from 'chalk'
-import type { RegionDiffResult } from './diff.js'
-import type { UpdatedBaseline } from './capture.js'
+import type { RegionDiffResult, MultiBrowserDiffResult } from './diff.js'
+import type { UpdatedBaseline, BrowserName } from './capture.js'
 
 const SELECTOR_LABELS: Record<string, string> = {
   h1: 'Title (h1)',
@@ -86,6 +86,52 @@ export function formatDiffResults(
 
 export function formatCaptureDone(outPath: string): string {
   return chalk.green(`Snapshot saved: ${outPath}`)
+}
+
+const BROWSER_LABELS: Record<BrowserName, string> = {
+  chromium: 'Chromium',
+  firefox: 'Firefox',
+  webkit: 'WebKit',
+}
+
+export function formatMultiBrowserReport(
+  results: MultiBrowserDiffResult[],
+  thresholdPct: number,
+  browsers: BrowserName[]
+): string {
+  const lines: string[] = []
+  lines.push(chalk.bold('Multi-browser font diff report'))
+  lines.push('')
+
+  // Header row
+  const selectorCol = 'Selector'.padEnd(20)
+  const browserCols = browsers.map((b) => BROWSER_LABELS[b].padEnd(18)).join('')
+  lines.push(`  ${chalk.bold(selectorCol)}${browserCols}`)
+  lines.push('  ' + '-'.repeat(20 + browsers.length * 18))
+
+  let totalFail = 0
+  let totalPass = 0
+
+  for (const r of results) {
+    const label = labelFor(r.selector).padEnd(20)
+    const cols = browsers.map((b) => {
+      const data = r.browsers[b]
+      if (!data || data.missing) return chalk.yellow('? missing'.padEnd(18))
+      if (data.diffPercent > thresholdPct) {
+        totalFail++
+        return chalk.red(`✗ ${data.diffPercent.toFixed(1)}%`.padEnd(18))
+      }
+      totalPass++
+      return chalk.green(`✓ ${data.diffPercent.toFixed(1)}%`.padEnd(18))
+    }).join('')
+    lines.push(`  ${chalk.cyan(label)}${cols}`)
+  }
+
+  lines.push('')
+  const summary = `Summary: ${totalPass} passed, ${totalFail} failed (across ${browsers.length} browsers)`
+  lines.push(totalFail === 0 ? chalk.green(summary) : chalk.red(summary))
+
+  return lines.join('\n')
 }
 
 export function formatBaselineUpdateDone(updated: UpdatedBaseline[]): string {

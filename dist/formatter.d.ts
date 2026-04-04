@@ -1,5 +1,5 @@
-import type { RegionDiffResult } from './diff.js';
-import type { UpdatedBaseline } from './capture.js';
+import type { RegionDiffResult, MultiBrowserDiffResult } from './diff.js';
+import type { UpdatedBaseline, BrowserName } from './capture.js';
 export interface JsonDiffResult {
     selector: string;
     diff: number;
@@ -14,4 +14,5 @@ export declare function formatDiffResults(results: RegionDiffResult[], threshold
     failCount: number;
 };
 export declare function formatCaptureDone(outPath: string): string;
+export declare function formatMultiBrowserReport(results: MultiBrowserDiffResult[], thresholdPct: number, browsers: BrowserName[]): string;
 export declare function formatBaselineUpdateDone(updated: UpdatedBaseline[]): string;
