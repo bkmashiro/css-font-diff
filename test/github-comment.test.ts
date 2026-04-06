@@ -5,6 +5,7 @@ import path from 'node:path'
 import { test } from 'node:test'
 import {
   buildDiffMarkdownTable,
+  parsePositiveInt,
   readGitHubContext,
   upsertDiffComment,
 } from '../src/github-comment.ts'
@@ -125,4 +126,40 @@ test('upsertDiffComment updates an existing report comment', async () => {
   assert.equal(result.updated, true)
   assert.equal(calls[1]?.url, 'https://api.github.com/repos/owner/repo/issues/comments/99')
   assert.equal(calls[1]?.init?.method, 'PATCH')
+})
+
+test('parsePositiveInt returns the number for a valid positive integer string', () => {
+  assert.equal(parsePositiveInt('42'), 42)
+})
+
+test('parsePositiveInt returns 1 for the minimum positive value', () => {
+  assert.equal(parsePositiveInt('1'), 1)
+})
+
+test('parsePositiveInt returns undefined for zero', () => {
+  assert.equal(parsePositiveInt('0'), undefined)
+})
+
+test('parsePositiveInt returns undefined for a negative integer', () => {
+  assert.equal(parsePositiveInt('-5'), undefined)
+})
+
+test('parsePositiveInt returns undefined for a non-numeric string', () => {
+  assert.equal(parsePositiveInt('abc'), undefined)
+})
+
+test('parsePositiveInt returns undefined for an empty string', () => {
+  assert.equal(parsePositiveInt(''), undefined)
+})
+
+test('parsePositiveInt returns undefined for undefined input', () => {
+  assert.equal(parsePositiveInt(undefined), undefined)
+})
+
+test('parsePositiveInt returns undefined for a float string', () => {
+  assert.equal(parsePositiveInt('3.7'), 3)
+})
+
+test('parsePositiveInt ignores leading zeros and parses correctly', () => {
+  assert.equal(parsePositiveInt('007'), 7)
 })

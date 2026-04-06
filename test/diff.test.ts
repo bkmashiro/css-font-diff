@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { test } from 'node:test'
 import { PNG } from 'pngjs'
-import { diffImages, diffSnapshots, snapshotPath } from '../src/diff.ts'
+import { diffImages, diffSnapshots, safeSelector, snapshotPath } from '../src/diff.ts'
 
 const tmpDir = '/tmp/css-font-diff-test'
 fs.mkdirSync(tmpDir, { recursive: true })
@@ -97,6 +97,7 @@ test('diffSnapshots returns a diff result for existing selector snapshots', () =
     baseline: path.join('snapshots', `baseline-${safeSelector}-chromium.png`),
     compare: path.join('snapshots', `compare-${safeSelector}-chromium.png`),
     missing: false,
+    browser: 'chromium',
   })
 })
 
@@ -109,7 +110,44 @@ test('diffSnapshots marks selectors as missing when either snapshot is absent', 
     baseline: path.join('snapshots', 'missing-baseline-_hero-chromium.png'),
     compare: path.join('snapshots', 'missing-compare-_hero-chromium.png'),
     missing: true,
+    browser: 'chromium',
   })
+})
+
+test('safeSelector replaces dots with underscores', () => {
+  assert.equal(safeSelector('.title'), '_title')
+})
+
+test('safeSelector replaces colons and parens in pseudo-selectors', () => {
+  assert.equal(safeSelector(':not(.class)'), '_not__class_')
+})
+
+test('safeSelector replaces brackets and special chars in attribute selectors', () => {
+  assert.equal(safeSelector('[data-attr]'), '_data-attr_')
+})
+
+test('safeSelector replaces double colons in pseudo-elements', () => {
+  assert.equal(safeSelector('::before'), '__before')
+})
+
+test('safeSelector replaces spaces and combinators', () => {
+  assert.equal(safeSelector('main > h1'), 'main___h1')
+})
+
+test('safeSelector preserves hyphens and underscores', () => {
+  assert.equal(safeSelector('my-class_name'), 'my-class_name')
+})
+
+test('safeSelector preserves alphanumeric characters', () => {
+  assert.equal(safeSelector('h1'), 'h1')
+})
+
+test('safeSelector replaces unicode characters', () => {
+  assert.equal(safeSelector('héllo'), 'h_llo')
+})
+
+test('safeSelector handles empty string', () => {
+  assert.equal(safeSelector(''), '')
 })
 
 test('diffSnapshots marks selectors as missing when image comparison throws', () => {
@@ -132,5 +170,6 @@ test('diffSnapshots marks selectors as missing when image comparison throws', ()
     baseline: path.join('snapshots', `broken-${safeSelector}-chromium.png`),
     compare: path.join('snapshots', `broken-compare-${safeSelector}-chromium.png`),
     missing: true,
+    browser: 'chromium',
   })
 })

@@ -109,7 +109,7 @@ function readPrNumber(env: NodeJS.ProcessEnv): number | undefined {
   }
 }
 
-function parsePositiveInt(value: string | undefined): number | undefined {
+export function parsePositiveInt(value: string | undefined): number | undefined {
   if (!value) {
     return undefined
   }

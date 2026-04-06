@@ -5,10 +5,11 @@ import {
   formatCaptureDone,
   formatDiffResults,
   formatDiffStatus,
+  formatMultiBrowserReport,
   formatSummary,
   toJsonDiffResult,
 } from '../src/formatter.ts'
-import type { RegionDiffResult } from '../src/diff.ts'
+import type { MultiBrowserDiffResult, RegionDiffResult } from '../src/diff.ts'
 
 test('formatDiffStatus returns passed output when diff is within threshold', () => {
   assert.equal(formatDiffStatus(0.1, 1), '✓ passed')
@@ -97,10 +98,83 @@ test('formatCaptureDone reports the saved snapshot path', () => {
   assert.equal(formatCaptureDone('snapshots/demo-chromium.png'), 'Snapshot saved: snapshots/demo-chromium.png')
 })
 
+test('formatMultiBrowserReport includes header and separator', () => {
+  const results: MultiBrowserDiffResult[] = []
+  const output = formatMultiBrowserReport(results, 1, ['chromium'])
+
+  assert.match(output, /Multi-browser font diff report/)
+  assert.match(output, /Selector/)
+  assert.match(output, /Chromium/)
+})
+
+test('formatMultiBrowserReport shows pass counts for all-passing results', () => {
+  const results: MultiBrowserDiffResult[] = [
+    {
+      selector: 'h1',
+      browsers: {
+        chromium: { diffPercent: 0, missing: false },
+        firefox: { diffPercent: 0.5, missing: false },
+        webkit: { diffPercent: 0, missing: false },
+      },
+    },
+  ]
+  const output = formatMultiBrowserReport(results, 1, ['chromium', 'firefox', 'webkit'])
+
+  assert.match(output, /3 passed, 0 failed/)
+})
+
+test('formatMultiBrowserReport counts failures correctly', () => {
+  const results: MultiBrowserDiffResult[] = [
+    {
+      selector: 'p',
+      browsers: {
+        chromium: { diffPercent: 5, missing: false },
+        firefox: { diffPercent: 0.1, missing: false },
+        webkit: { diffPercent: 0, missing: false },
+      },
+    },
+  ]
+  const output = formatMultiBrowserReport(results, 1, ['chromium', 'firefox', 'webkit'])
+
+  // chromium fails (5% > 1%), firefox and webkit pass
+  assert.match(output, /2 passed, 1 failed/)
+})
+
+test('formatMultiBrowserReport shows missing indicator for absent snapshots', () => {
+  const results: MultiBrowserDiffResult[] = [
+    {
+      selector: '.nav',
+      browsers: {
+        chromium: { diffPercent: 0, missing: true },
+        firefox: { diffPercent: 0, missing: false },
+        webkit: { diffPercent: 0, missing: false },
+      },
+    },
+  ]
+  const output = formatMultiBrowserReport(results, 1, ['chromium', 'firefox', 'webkit'])
+
+  assert.match(output, /\? missing/)
+})
+
+test('formatMultiBrowserReport includes browser column headers', () => {
+  const results: MultiBrowserDiffResult[] = []
+  const output = formatMultiBrowserReport(results, 1, ['chromium', 'firefox', 'webkit'])
+
+  assert.match(output, /Firefox/)
+  assert.match(output, /WebKit/)
+})
+
+test('formatMultiBrowserReport summary shows browser count', () => {
+  const results: MultiBrowserDiffResult[] = []
+  const output = formatMultiBrowserReport(results, 1, ['chromium', 'firefox'])
+
+  assert.match(output, /across 2 browsers/)
+})
+
 test('formatBaselineUpdateDone reports updated selectors and count', () => {
   const output = formatBaselineUpdateDone([
-    { selector: '.hero-title', path: 'snapshots/baseline-_hero-title-chromium.png' },
-    { selector: '.body-text', path: 'snapshots/baseline-_body-text-chromium.png' },
+    { selector: '.hero-title', path: 'snapshots/baseline-_hero-title-chromium.png', browser: 'chromium' },
+    { selector: '.body-text', path: 'snapshots/baseline-_body-text-chromium.png', browser: 'chromium' },
   ])
 
   assert.match(output, /Updating baselines\.\.\./)
