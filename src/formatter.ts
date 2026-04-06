@@ -15,13 +15,6 @@ function labelFor(selector: string): string {
   return SELECTOR_LABELS[selector] ?? selector
 }
 
-export interface JsonDiffResult {
-  selector: string
-  diff: number
-  threshold: number
-  passed: boolean
-}
-
 /**
  * Returns a human-readable pass/fail status string for a single region diff.
  *
@@ -37,19 +30,6 @@ export function formatDiffStatus(diff: number, thresholdPct: number): string {
   }
 
   return '✓ passed'
-}
-
-export function toJsonDiffResult(
-  selector: string,
-  diff: number,
-  thresholdPct: number
-): JsonDiffResult {
-  return {
-    selector,
-    diff,
-    threshold: thresholdPct,
-    passed: diff <= thresholdPct,
-  }
 }
 
 export function formatSummary(passCount: number, failCount: number): string {
