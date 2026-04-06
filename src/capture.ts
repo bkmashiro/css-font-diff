@@ -6,12 +6,12 @@ import { selectorSnapshotPath } from './diff.js'
 export type BrowserName = 'chromium' | 'firefox' | 'webkit'
 export const ALL_BROWSERS: BrowserName[] = ['chromium', 'firefox', 'webkit']
 
-function getBrowserType(name: BrowserName): BrowserType {
-  switch (name) {
-    case 'chromium': return chromium
-    case 'firefox': return firefox
-    case 'webkit': return webkit
-  }
+export type BrowserTypes = Record<BrowserName, Pick<BrowserType, 'launch'>>
+
+const defaultBrowserTypes: BrowserTypes = { chromium, firefox, webkit }
+
+function getBrowserType(name: BrowserName, types: BrowserTypes): Pick<BrowserType, 'launch'> {
+  return types[name]
 }
 
 export async function captureSnapshot(
@@ -19,9 +19,10 @@ export async function captureSnapshot(
   name: string,
   selector: string,
   width: number,
-  browserName: BrowserName = 'chromium'
+  browserName: BrowserName = 'chromium',
+  browserTypes: BrowserTypes = defaultBrowserTypes
 ): Promise<string> {
-  const browser = await getBrowserType(browserName).launch()
+  const browser = await getBrowserType(browserName, browserTypes).launch()
   const page = await browser.newPage({ viewport: { width, height: 800 } })
   await page.goto(url, { waitUntil: 'networkidle' })
 
@@ -51,7 +52,8 @@ export async function updateBaselineSnapshots(
   width: number,
   snapshotsDir = 'snapshots',
   baselineName = 'baseline',
-  browsers: BrowserName[] = ['chromium']
+  browsers: BrowserName[] = ['chromium'],
+  browserTypes: BrowserTypes = defaultBrowserTypes
 ): Promise<UpdatedBaseline[]> {
   const updated: UpdatedBaseline[] = []
 
@@ -61,7 +63,7 @@ export async function updateBaselineSnapshots(
 
   await Promise.all(
     browsers.map(async (browserName) => {
-      const browser = await getBrowserType(browserName).launch()
+      const browser = await getBrowserType(browserName, browserTypes).launch()
       const page = await browser.newPage({ viewport: { width, height: 800 } })
 
       try {
