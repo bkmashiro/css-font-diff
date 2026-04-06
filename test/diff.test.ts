@@ -114,7 +114,7 @@ test('diffSnapshots marks selectors as missing when either snapshot is absent', 
   })
 })
 
-test('diffSnapshots marks selectors as missing when image comparison throws', () => {
+test('diffSnapshots marks selectors as missing when image dimensions do not match', () => {
   const snapshotsDir = path.join(process.cwd(), 'snapshots')
   fs.mkdirSync(snapshotsDir, { recursive: true })
 
@@ -225,4 +225,58 @@ test('diffSnapshotsAllBrowsers defaults to snapshots/ when snapshotsDir is omitt
 
   assert.equal(result.browsers.chromium.missing, true)
   assert.ok(result.selector === '#nonexistent')
+})
+
+test('diffSnapshots re-throws unexpected errors (non-dimension errors)', () => {
+  const snapshotsDir = path.join(process.cwd(), 'snapshots')
+  fs.mkdirSync(snapshotsDir, { recursive: true })
+
+  const selector = '.corrupt'
+  const safeSelector = '_corrupt'
+  const baselinePath = path.join(snapshotsDir, `corrupt-${safeSelector}-chromium.png`)
+  const comparePath = path.join(snapshotsDir, `corrupt-compare-${safeSelector}-chromium.png`)
+
+  // Write invalid PNG data to trigger a parse error
+  fs.writeFileSync(baselinePath, Buffer.from('not a png'))
+  fs.writeFileSync(comparePath, Buffer.from('not a png'))
+
+  assert.throws(
+    () => diffSnapshots('corrupt', 'corrupt-compare', [selector], 0.1),
+    (err) => err instanceof Error && !err.message.startsWith('Image dimensions do not match')
+  )
+})
+
+test('diffSnapshotsAllBrowsers marks missing: true for dimension mismatch', () => {
+  const snapshotsDir = path.join(process.cwd(), 'snapshots')
+  fs.mkdirSync(snapshotsDir, { recursive: true })
+
+  const selector = '.resized'
+  const safeSelector = '_resized'
+  const baselinePath = path.join(snapshotsDir, `mbase-${safeSelector}-chromium.png`)
+  const comparePath = path.join(snapshotsDir, `mcomp-${safeSelector}-chromium.png`)
+
+  fs.writeFileSync(baselinePath, fs.readFileSync(imgA))
+  fs.writeFileSync(comparePath, fs.readFileSync(imgD))
+
+  const [result] = diffSnapshotsAllBrowsers('mbase', 'mcomp', [selector], 0.1, ['chromium'])
+
+  assert.deepEqual(result.browsers.chromium, { diffPercent: 0, missing: true })
+})
+
+test('diffSnapshotsAllBrowsers re-throws unexpected errors', () => {
+  const snapshotsDir = path.join(process.cwd(), 'snapshots')
+  fs.mkdirSync(snapshotsDir, { recursive: true })
+
+  const selector = '.bad'
+  const safeSelector = '_bad'
+  const baselinePath = path.join(snapshotsDir, `badbase-${safeSelector}-chromium.png`)
+  const comparePath = path.join(snapshotsDir, `badcomp-${safeSelector}-chromium.png`)
+
+  fs.writeFileSync(baselinePath, Buffer.from('not a png'))
+  fs.writeFileSync(comparePath, Buffer.from('not a png'))
+
+  assert.throws(
+    () => diffSnapshotsAllBrowsers('badbase', 'badcomp', [selector], 0.1, ['chromium']),
+    (err) => err instanceof Error && !err.message.startsWith('Image dimensions do not match')
+  )
 })

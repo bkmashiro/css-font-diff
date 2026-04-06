@@ -124,14 +124,18 @@ export function diffSnapshots(
         browser: browserName,
       })
     } catch (err) {
-      results.push({
-        selector,
-        diffPercent: 0,
-        baseline: baselinePath,
-        compare: comparePath,
-        missing: true,
-        browser: browserName,
-      })
+      if (err instanceof Error && err.message.startsWith('Image dimensions do not match')) {
+        results.push({
+          selector,
+          diffPercent: 0,
+          baseline: baselinePath,
+          compare: comparePath,
+          missing: true,
+          browser: browserName,
+        })
+      } else {
+        throw err
+      }
     }
   }
 
@@ -176,8 +180,12 @@ export function diffSnapshotsAllBrowsers(
       try {
         const diffPercent = diffImages(baselinePath, comparePath, thresholdPct / 100)
         browserResults[browserName] = { diffPercent, missing: false }
-      } catch {
-        browserResults[browserName] = { diffPercent: 0, missing: true }
+      } catch (err) {
+        if (err instanceof Error && err.message.startsWith('Image dimensions do not match')) {
+          browserResults[browserName] = { diffPercent: 0, missing: true }
+        } else {
+          throw err
+        }
       }
     }
 
