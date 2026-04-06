@@ -21,7 +21,8 @@ export async function captureSnapshot(
   width: number,
   browserName: BrowserName = 'chromium',
   browserTypes: BrowserTypes = defaultBrowserTypes,
-  strictSelectors = false
+  strictSelectors = false,
+  snapshotsDir = 'snapshots'
 ): Promise<string> {
   const browser = await getBrowserType(browserName, browserTypes).launch()
 
@@ -29,11 +30,10 @@ export async function captureSnapshot(
     const page = await browser.newPage({ viewport: { width, height: 800 } })
     await page.goto(url, { waitUntil: 'networkidle' })
 
-    const dir = 'snapshots'
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    if (!fs.existsSync(snapshotsDir)) fs.mkdirSync(snapshotsDir, { recursive: true })
 
     const el = await page.$(selector)
-    const outPath = path.join(dir, `${name}-${browserName}.png`)
+    const outPath = path.join(snapshotsDir, `${name}-${browserName}.png`)
     if (el) {
       await el.screenshot({ path: outPath })
     } else {
