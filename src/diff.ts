@@ -54,13 +54,14 @@ export function diffSnapshots(
   compareName: string,
   selectors: string[],
   thresholdPct: number,
-  browserName: BrowserName = 'chromium'
+  browserName: BrowserName = 'chromium',
+  snapshotsDir = 'snapshots'
 ): RegionDiffResult[] {
   const results: RegionDiffResult[] = []
 
   for (const selector of selectors) {
-    const baselinePath = selectorSnapshotPath(baselineName, selector, 'snapshots', browserName)
-    const comparePath = selectorSnapshotPath(compareName, selector, 'snapshots', browserName)
+    const baselinePath = selectorSnapshotPath(baselineName, selector, snapshotsDir, browserName)
+    const comparePath = selectorSnapshotPath(compareName, selector, snapshotsDir, browserName)
 
     if (!fs.existsSync(baselinePath) || !fs.existsSync(comparePath)) {
       results.push({
@@ -104,14 +105,15 @@ export function diffSnapshotsAllBrowsers(
   compareName: string,
   selectors: string[],
   thresholdPct: number,
-  browsers: BrowserName[]
+  browsers: BrowserName[],
+  snapshotsDir = 'snapshots'
 ): MultiBrowserDiffResult[] {
   return selectors.map((selector) => {
     const browserResults = {} as Record<BrowserName, { diffPercent: number; missing: boolean }>
 
     for (const browserName of browsers) {
-      const baselinePath = selectorSnapshotPath(baselineName, selector, 'snapshots', browserName)
-      const comparePath = selectorSnapshotPath(compareName, selector, 'snapshots', browserName)
+      const baselinePath = selectorSnapshotPath(baselineName, selector, snapshotsDir, browserName)
+      const comparePath = selectorSnapshotPath(compareName, selector, snapshotsDir, browserName)
 
       if (!fs.existsSync(baselinePath) || !fs.existsSync(comparePath)) {
         browserResults[browserName] = { diffPercent: 0, missing: true }

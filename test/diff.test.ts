@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { test } from 'node:test'
 import { PNG } from 'pngjs'
-import { diffImages, diffSnapshots, snapshotPath } from '../src/diff.ts'
+import { diffImages, diffSnapshots, diffSnapshotsAllBrowsers, snapshotPath } from '../src/diff.ts'
 
 const tmpDir = '/tmp/css-font-diff-test'
 fs.mkdirSync(tmpDir, { recursive: true })
@@ -97,6 +97,7 @@ test('diffSnapshots returns a diff result for existing selector snapshots', () =
     baseline: path.join('snapshots', `baseline-${safeSelector}-chromium.png`),
     compare: path.join('snapshots', `compare-${safeSelector}-chromium.png`),
     missing: false,
+    browser: 'chromium',
   })
 })
 
@@ -109,6 +110,7 @@ test('diffSnapshots marks selectors as missing when either snapshot is absent', 
     baseline: path.join('snapshots', 'missing-baseline-_hero-chromium.png'),
     compare: path.join('snapshots', 'missing-compare-_hero-chromium.png'),
     missing: true,
+    browser: 'chromium',
   })
 })
 
@@ -132,5 +134,70 @@ test('diffSnapshots marks selectors as missing when image comparison throws', ()
     baseline: path.join('snapshots', `broken-${safeSelector}-chromium.png`),
     compare: path.join('snapshots', `broken-compare-${safeSelector}-chromium.png`),
     missing: true,
+    browser: 'chromium',
   })
+})
+
+test('diffSnapshots uses configured snapshotsDir instead of hardcoded snapshots', () => {
+  const customDir = path.join(tmpDir, 'custom-snapshots')
+  fs.mkdirSync(customDir, { recursive: true })
+
+  const selector = '.heading'
+  const safe = '_heading'
+  const baselinePath = path.join(customDir, `base-${safe}-chromium.png`)
+  const comparePath = path.join(customDir, `cmp-${safe}-chromium.png`)
+
+  fs.writeFileSync(baselinePath, fs.readFileSync(imgA))
+  fs.writeFileSync(comparePath, fs.readFileSync(imgB))
+
+  const [result] = diffSnapshots('base', 'cmp', [selector], 0.1, 'chromium', customDir)
+
+  assert.equal(result.missing, false)
+  assert.equal(result.baseline, path.join(customDir, `base-${safe}-chromium.png`))
+  assert.equal(result.compare, path.join(customDir, `cmp-${safe}-chromium.png`))
+})
+
+test('diffSnapshots with custom snapshotsDir marks missing when files are absent', () => {
+  const customDir = path.join(tmpDir, 'custom-snapshots-missing')
+  // intentionally do not create files
+
+  const [result] = diffSnapshots('b', 'c', ['.foo'], 0.1, 'chromium', customDir)
+
+  assert.equal(result.missing, true)
+  assert.equal(result.diffPercent, 0)
+  assert.ok(result.baseline.startsWith(customDir))
+})
+
+test('diffSnapshotsAllBrowsers uses configured snapshotsDir', () => {
+  const customDir = path.join(tmpDir, 'multi-browser-snapshots')
+  fs.mkdirSync(customDir, { recursive: true })
+
+  const selector = 'p'
+  const safe = 'p'
+  const browsers = ['chromium', 'firefox'] as const
+
+  for (const browser of browsers) {
+    const baselinePath = path.join(customDir, `base-${safe}-${browser}.png`)
+    const comparePath = path.join(customDir, `cmp-${safe}-${browser}.png`)
+    fs.writeFileSync(baselinePath, fs.readFileSync(imgA))
+    fs.writeFileSync(comparePath, fs.readFileSync(imgA))
+  }
+
+  const [result] = diffSnapshotsAllBrowsers('base', 'cmp', [selector], 0.1, [...browsers], customDir)
+
+  assert.equal(result.selector, selector)
+  assert.equal(result.browsers.chromium.missing, false)
+  assert.equal(result.browsers.chromium.diffPercent, 0)
+  assert.equal(result.browsers.firefox.missing, false)
+  assert.equal(result.browsers.firefox.diffPercent, 0)
+})
+
+test('diffSnapshotsAllBrowsers marks browsers as missing when snapshots absent', () => {
+  const customDir = path.join(tmpDir, 'multi-browser-missing')
+  // intentionally do not create files
+
+  const [result] = diffSnapshotsAllBrowsers('b', 'c', ['h1'], 0.1, ['chromium', 'webkit'], customDir)
+
+  assert.equal(result.browsers.chromium.missing, true)
+  assert.equal(result.browsers.webkit.missing, true)
 })

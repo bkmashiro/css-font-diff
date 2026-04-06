@@ -75,7 +75,7 @@ program
         }
 
         const outPaths: string[] = await Promise.all(
-          browsers.map((b) => captureSnapshot(opts.url, opts.name, opts.selector, width, b))
+          browsers.map((b) => captureSnapshot(opts.url, opts.name, opts.selector, width, b, config.snapshotsDir))
         )
         for (const outPath of outPaths) {
           console.log(formatCaptureDone(outPath))
@@ -138,7 +138,8 @@ program
           opts.compare,
           selectors,
           thresholdPct,
-          browsers
+          browsers,
+          config.snapshotsDir
         )
 
         if (opts.json) {
@@ -155,7 +156,7 @@ program
         process.exit(failed ? 1 : 0)
       } else {
         const browserName = browsers[0]
-        const results = diffSnapshots(opts.baseline, opts.compare, selectors, thresholdPct, browserName)
+        const results = diffSnapshots(opts.baseline, opts.compare, selectors, thresholdPct, browserName, config.snapshotsDir)
 
         if (opts.json) {
           console.log(JSON.stringify(results, null, 2))
