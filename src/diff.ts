@@ -1,5 +1,6 @@
 import { PNG } from 'pngjs'
 import pixelmatch from 'pixelmatch'
+import crypto from 'node:crypto'
 import fs from 'fs'
 import path from 'path'
 import type { BrowserName } from './capture.js'
@@ -61,7 +62,9 @@ export function snapshotPath(name: string, browserName: BrowserName = 'chromium'
  * @returns The sanitized string, safe for use in file and directory names.
  */
 export function safeSelector(selector: string): string {
-  return selector.replace(/[^a-zA-Z0-9_-]/g, '_')
+  const sanitized = selector.replace(/[^a-zA-Z0-9_-]/g, '_')
+  const hash = crypto.createHash('sha1').update(selector).digest('hex').slice(0, 6)
+  return `${sanitized}_${hash}`
 }
 
 export function selectorSnapshotPath(
