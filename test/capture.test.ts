@@ -124,7 +124,7 @@ test('captureSnapshot() writes a PNG file and returns its path when the element 
 // captureSnapshot() — browser.close() on goto error
 // ---------------------------------------------------------------------------
 
-test('captureSnapshot() does not close the browser when page.goto() throws (documents current behaviour)', async () => {
+test('captureSnapshot() closes the browser when page.goto() throws', async () => {
   state.gotoError = new Error('network timeout')
 
   await assert.rejects(
@@ -132,13 +132,11 @@ test('captureSnapshot() does not close the browser when page.goto() throws (docu
     /network timeout/
   )
 
-  // The current implementation has no try/finally around goto, so the browser
-  // is NOT closed when goto throws. This test documents that behaviour so that
-  // any future resource-leak fix is noticed and the assertion can be updated.
+  // The try/finally ensures browser.close() is called even when goto throws.
   assert.equal(
     state.browserCloseCalls[0],
-    false,
-    'current impl does not close browser on goto error — update this if a finally block is added'
+    true,
+    'browser should be closed in finally block even when goto throws'
   )
 })
 
@@ -230,6 +228,6 @@ test('updateBaselineSnapshots() throws when a selector is not found in the page'
         'baseline',
         ['chromium']
       ),
-    /Selector not found while updating baselines: \.missing/
+    /Selector not found: \.missing/
   )
 })
