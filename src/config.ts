@@ -44,6 +44,14 @@ export function loadConfig(configFile = CONFIG_FILE): Config {
   return validateConfig({ ...defaults, ...parsed })
 }
 
+export function parseWidthOption(value: string | undefined, defaultWidth: number): number {
+  return value != null ? parseInt(value, 10) : defaultWidth
+}
+
+export function parseThresholdOption(value: string | undefined, defaultThreshold: number): number {
+  return value != null ? parseFloat(value) : defaultThreshold
+}
+
 export function initConfig(configFile = CONFIG_FILE): void {
   const configPath = path.resolve(configFile)
   if (fs.existsSync(configPath)) {
