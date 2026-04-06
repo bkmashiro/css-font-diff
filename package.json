@@ -13,7 +13,7 @@
     "build": "tsc",
     "dev": "node --import tsx/esm src/index.ts",
     "pretest": "node --import tsx/esm test/fixtures/generate.ts",
-    "test": "node --import tsx/esm --test test/**/*.test.ts",
+    "test": "node --experimental-test-module-mocks --import tsx/esm --test test/**/*.test.ts",
     "prepublishOnly": "tsc"
   },
   "dependencies": {
