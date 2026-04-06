@@ -114,7 +114,7 @@ test('diffSnapshots marks selectors as missing when either snapshot is absent', 
   })
 })
 
-test('diffSnapshots marks selectors as missing when image dimensions do not match', () => {
+test('diffSnapshots marks selectors as missing and includes error when image comparison throws', () => {
   const snapshotsDir = path.join(process.cwd(), 'snapshots')
   fs.mkdirSync(snapshotsDir, { recursive: true })
 
@@ -128,14 +128,69 @@ test('diffSnapshots marks selectors as missing when image dimensions do not matc
 
   const [result] = diffSnapshots('broken', 'broken-compare', [selector], 0.1)
 
-  assert.deepEqual(result, {
-    selector,
-    diffPercent: 0,
-    baseline: path.join('snapshots', `broken-${safeSelector}-chromium.png`),
-    compare: path.join('snapshots', `broken-compare-${safeSelector}-chromium.png`),
-    missing: true,
-    browser: 'chromium',
-  })
+  assert.equal(result.selector, selector)
+  assert.equal(result.diffPercent, 0)
+  assert.equal(result.missing, true)
+  assert.ok(result.error, 'expected error to be populated')
+  assert.match(result.error!, /10x10.*20x10|20x10.*10x10/)
+})
+
+test('diffSnapshots result has no error field on success', () => {
+  const snapshotsDir = path.join(process.cwd(), 'snapshots')
+  fs.mkdirSync(snapshotsDir, { recursive: true })
+
+  const selector = '.no-error'
+  const safeSelector = '_no-error'
+  const baselinePath = path.join(snapshotsDir, `noerr-${safeSelector}-chromium.png`)
+  const comparePath = path.join(snapshotsDir, `noerr-compare-${safeSelector}-chromium.png`)
+
+  fs.writeFileSync(baselinePath, fs.readFileSync(imgA))
+  fs.writeFileSync(comparePath, fs.readFileSync(imgB))
+
+  const [result] = diffSnapshots('noerr', 'noerr-compare', [selector], 0.1)
+
+  assert.equal(result.missing, false)
+  assert.equal(result.error, undefined)
+})
+
+test('diffSnapshotsAllBrowsers includes error when dimensions mismatch', () => {
+  const snapshotsDir = path.join(process.cwd(), 'snapshots')
+  fs.mkdirSync(snapshotsDir, { recursive: true })
+
+  const selector = '.multi-broken'
+  const safeSelector = '_multi-broken'
+  const baselinePath = path.join(snapshotsDir, `mbase-${safeSelector}-chromium.png`)
+  const comparePath = path.join(snapshotsDir, `mcompare-${safeSelector}-chromium.png`)
+
+  fs.writeFileSync(baselinePath, fs.readFileSync(imgA))
+  fs.writeFileSync(comparePath, fs.readFileSync(imgD))
+
+  const [result] = diffSnapshotsAllBrowsers('mbase', 'mcompare', [selector], 0.1, ['chromium'])
+  const chromium = result.browsers['chromium']
+
+  assert.equal(chromium.missing, true)
+  assert.equal(chromium.diffPercent, 0)
+  assert.ok(chromium.error, 'expected error to be populated')
+  assert.match(chromium.error!, /10x10.*20x10|20x10.*10x10/)
+})
+
+test('diffSnapshotsAllBrowsers has no error field on success', () => {
+  const snapshotsDir = path.join(process.cwd(), 'snapshots')
+  fs.mkdirSync(snapshotsDir, { recursive: true })
+
+  const selector = '.multi-ok'
+  const safeSelector = '_multi-ok'
+  const baselinePath = path.join(snapshotsDir, `mok-${safeSelector}-chromium.png`)
+  const comparePath = path.join(snapshotsDir, `mok-compare-${safeSelector}-chromium.png`)
+
+  fs.writeFileSync(baselinePath, fs.readFileSync(imgA))
+  fs.writeFileSync(comparePath, fs.readFileSync(imgB))
+
+  const [result] = diffSnapshotsAllBrowsers('mok', 'mok-compare', [selector], 0.1, ['chromium'])
+  const chromium = result.browsers['chromium']
+
+  assert.equal(chromium.missing, false)
+  assert.equal(chromium.error, undefined)
 })
 
 test('diffSnapshots uses custom snapshotsDir instead of hardcoded snapshots/', () => {
