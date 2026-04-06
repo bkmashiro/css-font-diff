@@ -9,7 +9,7 @@ import {
   formatMultiBrowserReport,
 } from './formatter.js'
 import { upsertDiffComment } from './github-comment.js'
-import { loadConfig, initConfig } from './config.js'
+import { loadConfig, initConfig, parseWidthOption, parseThresholdOption } from './config.js'
 
 const program = new Command()
 
@@ -51,7 +51,7 @@ program
       updateBaselines?: boolean
     }) => {
       const config = loadConfig()
-      const width = parseInt(opts.width, 10) || config.defaultWidth
+      const width = parseWidthOption(opts.width, config.defaultWidth)
       let browsers: BrowserName[]
       try {
         browsers = parseBrowserOption(opts.browser)
@@ -115,7 +115,7 @@ program
       ciComment?: boolean
     }) => {
       const config = loadConfig()
-      const thresholdPct = parseFloat(opts.threshold) || config.defaultThreshold
+      const thresholdPct = parseThresholdOption(opts.threshold, config.defaultThreshold)
       const selectors = opts.selector
         ? [opts.selector]
         : opts.selectors
