@@ -22,6 +22,15 @@ export interface JsonDiffResult {
   passed: boolean
 }
 
+/**
+ * Returns a human-readable pass/fail status string for a single region diff.
+ *
+ * @param diff - The measured pixel-difference percentage for a region.
+ * @param thresholdPct - The maximum allowed difference percentage before a region is
+ *   considered failed.
+ * @returns `"✓ passed"` when `diff <= thresholdPct`, otherwise a string of the form
+ *   `"✗ failed (X.X% > Y.Y%)"`.
+ */
 export function formatDiffStatus(diff: number, thresholdPct: number): string {
   if (diff > thresholdPct) {
     return `✗ failed (${diff.toFixed(1)}% > ${thresholdPct.toFixed(1)}%)`
@@ -47,6 +56,19 @@ export function formatSummary(passCount: number, failCount: number): string {
   return `Summary: ${passCount} passed, ${failCount} failed`
 }
 
+/**
+ * Formats a complete per-region diff report as a coloured terminal string.
+ *
+ * Each result line shows the region label and its pass/fail status. Missing snapshots
+ * are shown separately. A summary line is appended at the end.
+ *
+ * @param results - Array of {@link RegionDiffResult} objects returned by `diffSnapshots`.
+ * @param thresholdPct - The maximum allowed pixel-difference percentage. Results above
+ *   this value are rendered as failures.
+ * @returns An object with:
+ *   - `output` — the full formatted report ready to print to stdout.
+ *   - `failCount` — the number of regions that exceeded `thresholdPct` (excludes missing).
+ */
 export function formatDiffResults(
   results: RegionDiffResult[],
   thresholdPct: number
@@ -94,6 +116,18 @@ const BROWSER_LABELS: Record<BrowserName, string> = {
   webkit: 'WebKit',
 }
 
+/**
+ * Formats a multi-browser diff report as a coloured terminal table.
+ *
+ * Renders one row per selector with a column for each browser. Each cell shows the
+ * diff percentage (green = passed, red = failed, yellow = snapshot missing). A summary
+ * line with total pass/fail counts across all browsers is appended.
+ *
+ * @param results - Array of {@link MultiBrowserDiffResult} objects, one per selector.
+ * @param thresholdPct - The maximum allowed pixel-difference percentage per cell.
+ * @param browsers - Ordered list of browsers to display as columns.
+ * @returns The formatted report as a single string ready to print to stdout.
+ */
 export function formatMultiBrowserReport(
   results: MultiBrowserDiffResult[],
   thresholdPct: number,
