@@ -10,13 +10,17 @@ import {
 } from './formatter.js'
 import { upsertDiffComment } from './github-comment.js'
 import { loadConfig, initConfig } from './config.js'
+import { createRequire } from 'module'
+
+const require = createRequire(import.meta.url)
+const { version } = require('../package.json')
 
 const program = new Command()
 
 program
   .name('css-font-diff')
   .description('Detect cross-browser font rendering differences with pixel-level precision')
-  .version('0.4.0')
+  .version(version)
 
 function parseBrowserOption(value: string): BrowserName[] {
   if (value === 'all') return ALL_BROWSERS
