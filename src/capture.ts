@@ -23,21 +23,26 @@ export async function captureSnapshot(
   browserTypes: BrowserTypes = defaultBrowserTypes
 ): Promise<string> {
   const browser = await getBrowserType(browserName, browserTypes).launch()
-  const page = await browser.newPage({ viewport: { width, height: 800 } })
-  await page.goto(url, { waitUntil: 'networkidle' })
 
-  const dir = 'snapshots'
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  try {
+    const page = await browser.newPage({ viewport: { width, height: 800 } })
+    await page.goto(url, { waitUntil: 'networkidle' })
 
-  const el = await page.$(selector)
-  const outPath = path.join(dir, `${name}-${browserName}.png`)
-  if (el) {
-    await el.screenshot({ path: outPath })
-  } else {
-    await page.screenshot({ path: outPath })
+    const dir = 'snapshots'
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+
+    const el = await page.$(selector)
+    const outPath = path.join(dir, `${name}-${browserName}.png`)
+    if (el) {
+      await el.screenshot({ path: outPath })
+    } else {
+      console.warn(`Selector "${selector}" not found on ${url}, falling back to full-page screenshot`)
+      await page.screenshot({ path: outPath })
+    }
+    return outPath
+  } finally {
+    await browser.close()
   }
-  await browser.close()
-  return outPath
 }
 
 export interface UpdatedBaseline {
