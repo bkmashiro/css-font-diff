@@ -11,11 +11,12 @@ export interface RegionDiffResult {
   compare: string
   missing: boolean
   browser?: BrowserName
+  error?: string
 }
 
 export interface MultiBrowserDiffResult {
   selector: string
-  browsers: Record<BrowserName, { diffPercent: number; missing: boolean }>
+  browsers: Record<BrowserName, { diffPercent: number; missing: boolean; error?: string }>
 }
 
 /**
@@ -132,6 +133,7 @@ export function diffSnapshots(
           compare: comparePath,
           missing: true,
           browser: browserName,
+          error: err.message,
         })
       } else {
         throw err
@@ -182,7 +184,7 @@ export function diffSnapshotsAllBrowsers(
         browserResults[browserName] = { diffPercent, missing: false }
       } catch (err) {
         if (err instanceof Error && err.message.startsWith('Image dimensions do not match')) {
-          browserResults[browserName] = { diffPercent: 0, missing: true }
+          browserResults[browserName] = { diffPercent: 0, missing: true, error: err.message }
         } else {
           throw err
         }
