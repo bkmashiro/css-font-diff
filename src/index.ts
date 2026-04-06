@@ -94,7 +94,7 @@ program
         }
 
         const outPaths: string[] = await Promise.all(
-          browsers.map((b) => captureSnapshot(opts.url, opts.name, opts.selector, width, b, opts.strictSelectors ?? false))
+          browsers.map((b) => captureSnapshot(opts.url, opts.name, opts.selector, width, b, undefined, opts.strictSelectors ?? false, config.snapshotsDir))
         )
         for (const outPath of outPaths) {
           console.log(formatCaptureDone(outPath))
