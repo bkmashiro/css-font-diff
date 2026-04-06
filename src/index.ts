@@ -11,6 +11,10 @@ import {
 } from './formatter.js'
 import { upsertDiffComment } from './github-comment.js'
 import { loadConfig, initConfig } from './config.js'
+import { createRequire } from 'module'
+
+const require = createRequire(import.meta.url)
+const { version } = require('../package.json')
 
 const require = createRequire(import.meta.url)
 const { version } = require('../package.json') as { version: string }
