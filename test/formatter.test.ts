@@ -7,7 +7,6 @@ import {
   formatDiffStatus,
   formatMultiBrowserReport,
   formatSummary,
-  toJsonDiffResult,
 } from '../src/formatter.ts'
 import type { MultiBrowserDiffResult, RegionDiffResult } from '../src/diff.ts'
 
@@ -17,24 +16,6 @@ test('formatDiffStatus returns passed output when diff is within threshold', () 
 
 test('formatDiffStatus returns failed output when diff exceeds threshold', () => {
   assert.equal(formatDiffStatus(4.7, 1), '✗ failed (4.7% > 1.0%)')
-})
-
-test('toJsonDiffResult returns the expected JSON structure', () => {
-  assert.deepEqual(toJsonDiffResult('h1', 4.7, 1), {
-    selector: 'h1',
-    diff: 4.7,
-    threshold: 1,
-    passed: false,
-  })
-})
-
-test('toJsonDiffResult marks results as passed at the threshold boundary', () => {
-  assert.deepEqual(toJsonDiffResult('p', 1, 1), {
-    selector: 'p',
-    diff: 1,
-    threshold: 1,
-    passed: true,
-  })
 })
 
 test('formatSummary shows correct pass and fail counts', () => {
@@ -184,8 +165,8 @@ test('formatMultiBrowserReport shows all-pass summary when nothing exceeds thres
 
 test('formatBaselineUpdateDone reports updated selectors and count', () => {
   const output = formatBaselineUpdateDone([
-    { selector: '.hero-title', path: 'snapshots/baseline-_hero-title-chromium.png', browser: 'chromium' },
-    { selector: '.body-text', path: 'snapshots/baseline-_body-text-chromium.png', browser: 'chromium' },
+    { selector: '.hero-title', path: 'snapshots/baseline-_hero-title-chromium.png', browser: 'chromium' as const },
+    { selector: '.body-text', path: 'snapshots/baseline-_body-text-chromium.png', browser: 'chromium' as const },
   ])
 
   assert.match(output, /Updating baselines\.\.\./)
