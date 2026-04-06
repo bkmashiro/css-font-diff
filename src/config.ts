@@ -33,8 +33,14 @@ export function loadConfig(configFile = CONFIG_FILE): Config {
     return { ...defaults }
   }
 
-  const raw = fs.readFileSync(configPath, 'utf-8')
-  const parsed = JSON.parse(raw) as Partial<Config>
+  let raw: string
+  let parsed: Partial<Config>
+  try {
+    raw = fs.readFileSync(configPath, 'utf-8')
+    parsed = JSON.parse(raw) as Partial<Config>
+  } catch (err) {
+    throw new Error(`Failed to parse config file at ${configPath}: ${err instanceof Error ? err.message : err}`)
+  }
   return validateConfig({ ...defaults, ...parsed })
 }
 
