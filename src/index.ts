@@ -25,6 +25,9 @@ const { version } = require('../package.json') as { version: string }
 const require = createRequire(import.meta.url)
 const { version } = require('../package.json') as { version: string }
 
+const require = createRequire(import.meta.url)
+const { version } = require('../package.json') as { version: string }
+
 const program = new Command()
 
 program
