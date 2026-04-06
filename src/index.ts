@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { createRequire } from 'module'
+import { createRequire } from 'node:module'
 import { Command } from 'commander'
 import { captureSnapshot, updateBaselineSnapshots, ALL_BROWSERS, type BrowserName } from './capture.js'
 import { diffSnapshots, diffSnapshotsAllBrowsers } from './diff.js'
@@ -15,6 +15,9 @@ import { createRequire } from 'module'
 
 const require = createRequire(import.meta.url)
 const { version } = require('../package.json')
+
+const require = createRequire(import.meta.url)
+const { version } = require('../package.json') as { version: string }
 
 const require = createRequire(import.meta.url)
 const { version } = require('../package.json') as { version: string }
