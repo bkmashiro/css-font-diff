@@ -97,6 +97,7 @@ test('diffSnapshots returns a diff result for existing selector snapshots', () =
     baseline: path.join('snapshots', `baseline-${safeSelector}-chromium.png`),
     compare: path.join('snapshots', `compare-${safeSelector}-chromium.png`),
     missing: false,
+    browser: 'chromium',
   })
 })
 
@@ -109,6 +110,7 @@ test('diffSnapshots marks selectors as missing when either snapshot is absent', 
     baseline: path.join('snapshots', 'missing-baseline-_hero-chromium.png'),
     compare: path.join('snapshots', 'missing-compare-_hero-chromium.png'),
     missing: true,
+    browser: 'chromium',
   })
 })
 
@@ -132,5 +134,6 @@ test('diffSnapshots marks selectors as missing when image comparison throws', ()
     baseline: path.join('snapshots', `broken-${safeSelector}-chromium.png`),
     compare: path.join('snapshots', `broken-compare-${safeSelector}-chromium.png`),
     missing: true,
+    browser: 'chromium',
   })
 })
