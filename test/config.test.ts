@@ -44,6 +44,23 @@ test('loadConfig loads selectors list from config file', () => {
   })
 })
 
+test('loadConfig throws descriptive error for malformed JSON', () => {
+  withTempDir((dir) => {
+    const configPath = path.join(dir, 'css-font-diff.config.json')
+    fs.writeFileSync(configPath, '{ "defaultThreshold": }')
+
+    assert.throws(
+      () => loadConfig(configPath),
+      (err: unknown) => {
+        assert.ok(err instanceof Error)
+        assert.ok(err.message.includes(configPath), `Expected path in error: ${err.message}`)
+        assert.ok(err.message.startsWith('Failed to parse config file at '), `Unexpected message: ${err.message}`)
+        return true
+      },
+    )
+  })
+})
+
 test('loadConfig rejects threshold lower than 0', () => {
   withTempDir((dir) => {
     const configPath = path.join(dir, 'css-font-diff.config.json')
