@@ -20,7 +20,8 @@ export async function captureSnapshot(
   selector: string,
   width: number,
   browserName: BrowserName = 'chromium',
-  browserTypes: BrowserTypes = defaultBrowserTypes
+  browserTypes: BrowserTypes = defaultBrowserTypes,
+  strictSelectors = false
 ): Promise<string> {
   const browser = await getBrowserType(browserName, browserTypes).launch()
 
@@ -36,7 +37,10 @@ export async function captureSnapshot(
     if (el) {
       await el.screenshot({ path: outPath })
     } else {
-      console.warn(`Selector "${selector}" not found on ${url}, falling back to full-page screenshot`)
+      if (strictSelectors) {
+        throw new Error(`Selector not found: "${selector}"`)
+      }
+      process.stderr.write(`Warning: selector "${selector}" not found, falling back to full-page screenshot\n`)
       await page.screenshot({ path: outPath })
     }
     return outPath
