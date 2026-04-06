@@ -5,10 +5,11 @@ import {
   formatCaptureDone,
   formatDiffResults,
   formatDiffStatus,
+  formatMultiBrowserReport,
   formatSummary,
   toJsonDiffResult,
 } from '../src/formatter.ts'
-import type { RegionDiffResult } from '../src/diff.ts'
+import type { MultiBrowserDiffResult, RegionDiffResult } from '../src/diff.ts'
 
 test('formatDiffStatus returns passed output when diff is within threshold', () => {
   assert.equal(formatDiffStatus(0.1, 1), '✓ passed')
@@ -106,4 +107,124 @@ test('formatBaselineUpdateDone reports updated selectors and count', () => {
   assert.match(output, /Updating baselines\.\.\./)
   assert.match(output, /\.hero-title -> snapshots\/baseline-_hero-title-chromium\.png updated/)
   assert.match(output, /2 baselines updated\./)
+})
+
+test('formatMultiBrowserReport shows pass summary when all selectors match across all browsers', () => {
+  const results: MultiBrowserDiffResult[] = [
+    {
+      selector: 'h1',
+      browsers: {
+        chromium: { diffPercent: 0.1, missing: false },
+        firefox: { diffPercent: 0.2, missing: false },
+        webkit: { diffPercent: 0.0, missing: false },
+      },
+    },
+    {
+      selector: 'p',
+      browsers: {
+        chromium: { diffPercent: 0.5, missing: false },
+        firefox: { diffPercent: 0.3, missing: false },
+        webkit: { diffPercent: 0.4, missing: false },
+      },
+    },
+  ]
+
+  const output = formatMultiBrowserReport(results, 1, ['chromium', 'firefox', 'webkit'])
+
+  assert.match(output, /Multi-browser font diff report/)
+  assert.match(output, /Title \(h1\)/)
+  assert.match(output, /Body text \(p\)/)
+  assert.match(output, /✓/)
+  assert.doesNotMatch(output, /✗/)
+  assert.match(output, /6 passed, 0 failed/)
+})
+
+test('formatMultiBrowserReport shows fail summary when some selectors differ across browsers', () => {
+  const results: MultiBrowserDiffResult[] = [
+    {
+      selector: 'h1',
+      browsers: {
+        chromium: { diffPercent: 0.1, missing: false },
+        firefox: { diffPercent: 5.0, missing: false },
+        webkit: { diffPercent: 0.0, missing: false },
+      },
+    },
+    {
+      selector: 'p',
+      browsers: {
+        chromium: { diffPercent: 0.2, missing: false },
+        firefox: { diffPercent: 0.3, missing: false },
+        webkit: { diffPercent: 0.0, missing: false },
+      },
+    },
+  ]
+
+  const output = formatMultiBrowserReport(results, 1, ['chromium', 'firefox'])
+
+  assert.match(output, /✗ 5\.0%/)
+  assert.match(output, /✓ 0\.1%/)
+  assert.match(output, /3 passed, 1 failed/)
+})
+
+test('formatMultiBrowserReport shows missing marker for absent snapshots', () => {
+  const results: MultiBrowserDiffResult[] = [
+    {
+      selector: 'a',
+      browsers: {
+        chromium: { diffPercent: 0, missing: true },
+        firefox: { diffPercent: 0.1, missing: false },
+        webkit: { diffPercent: 0.0, missing: false },
+      },
+    },
+  ]
+
+  const output = formatMultiBrowserReport(results, 1, ['chromium', 'firefox'])
+
+  assert.match(output, /\? missing/)
+  assert.match(output, /✓ 0\.1%/)
+  assert.match(output, /1 passed, 0 failed/)
+})
+
+test('formatMultiBrowserReport uses raw selector when no label mapping exists', () => {
+  const results: MultiBrowserDiffResult[] = [
+    {
+      selector: '.custom-class',
+      browsers: {
+        chromium: { diffPercent: 0.0, missing: false },
+        firefox: { diffPercent: 0.0, missing: false },
+        webkit: { diffPercent: 0.0, missing: false },
+      },
+    },
+  ]
+
+  const output = formatMultiBrowserReport(results, 1, ['chromium'])
+
+  assert.match(output, /\.custom-class/)
+})
+
+test('formatMultiBrowserReport counts each browser result independently when threshold is exceeded', () => {
+  const results: MultiBrowserDiffResult[] = [
+    {
+      selector: 'h2',
+      browsers: {
+        chromium: { diffPercent: 3.0, missing: false },
+        firefox: { diffPercent: 3.0, missing: false },
+        webkit: { diffPercent: 3.0, missing: false },
+      },
+    },
+  ]
+
+  const output = formatMultiBrowserReport(results, 1, ['chromium', 'firefox', 'webkit'])
+
+  assert.match(output, /0 passed, 3 failed/)
+})
+
+test('formatMultiBrowserReport renders correct browser header columns', () => {
+  const results: MultiBrowserDiffResult[] = []
+
+  const output = formatMultiBrowserReport(results, 1, ['chromium', 'firefox'])
+
+  assert.match(output, /Chromium/)
+  assert.match(output, /Firefox/)
+  assert.doesNotMatch(output, /WebKit/)
 })
