@@ -54,6 +54,7 @@ program
   .option('--browser <browser>', 'Browser(s) to use: chromium|firefox|webkit|all (comma-separated)', 'chromium')
   .option('--baseline-update', 'Update baseline screenshots for configured selectors')
   .option('--update-baselines', 'Alias for --baseline-update')
+  .option('--strict-selectors', 'Error and exit non-zero when a CSS selector is not found')
   .action(
     async (opts: {
       url: string
@@ -63,6 +64,7 @@ program
       browser: string
       baselineUpdate?: boolean
       updateBaselines?: boolean
+      strictSelectors?: boolean
     }) => {
       const config = loadConfig()
       const width = parseInt(opts.width, 10) || config.defaultWidth
@@ -89,7 +91,7 @@ program
         }
 
         const outPaths: string[] = await Promise.all(
-          browsers.map((b) => captureSnapshot(opts.url, opts.name, opts.selector, width, b))
+          browsers.map((b) => captureSnapshot(opts.url, opts.name, opts.selector, width, b, opts.strictSelectors ?? false))
         )
         for (const outPath of outPaths) {
           console.log(formatCaptureDone(outPath))
