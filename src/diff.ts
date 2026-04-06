@@ -10,6 +10,7 @@ export interface RegionDiffResult {
   baseline: string
   compare: string
   missing: boolean
+  error?: string
   browser?: BrowserName
   error?: string
 }
@@ -168,7 +169,7 @@ export function diffSnapshotsAllBrowsers(
   snapshotsDir = 'snapshots'
 ): MultiBrowserDiffResult[] {
   return selectors.map((selector) => {
-    const browserResults = {} as Record<BrowserName, { diffPercent: number; missing: boolean }>
+    const browserResults = {} as Record<BrowserName, { diffPercent: number; missing: boolean; error?: string }>
 
     for (const browserName of browsers) {
       const baselinePath = selectorSnapshotPath(baselineName, selector, snapshotsDir, browserName)
