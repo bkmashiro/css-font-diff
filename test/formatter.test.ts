@@ -98,10 +98,94 @@ test('formatCaptureDone reports the saved snapshot path', () => {
   assert.equal(formatCaptureDone('snapshots/demo-chromium.png'), 'Snapshot saved: snapshots/demo-chromium.png')
 })
 
+test('formatMultiBrowserReport includes header and selector rows', () => {
+  const results: MultiBrowserDiffResult[] = [
+    {
+      selector: 'h1',
+      browsers: {
+        chromium: { diffPercent: 0.5, missing: false },
+        firefox: { diffPercent: 2.3, missing: false },
+        webkit: { diffPercent: 0.0, missing: false },
+      },
+    },
+    {
+      selector: 'p',
+      browsers: {
+        chromium: { diffPercent: 0.0, missing: false },
+        firefox: { diffPercent: 0.1, missing: false },
+        webkit: { diffPercent: 5.0, missing: false },
+      },
+    },
+  ]
+
+  const output = formatMultiBrowserReport(results, 1, ['chromium', 'firefox', 'webkit'])
+
+  assert.match(output, /Multi-browser font diff report/)
+  assert.match(output, /Selector/)
+  assert.match(output, /Chromium/)
+  assert.match(output, /Firefox/)
+  assert.match(output, /WebKit/)
+  assert.match(output, /Title \(h1\)/)
+  assert.match(output, /Body text \(p\)/)
+  // firefox 2.3% and webkit 5.0% exceed threshold of 1 — 2 failures
+  assert.match(output, /Summary: 4 passed, 2 failed/)
+})
+
+test('formatMultiBrowserReport shows missing when a browser key is absent', () => {
+  const results: MultiBrowserDiffResult[] = [
+    {
+      selector: 'h1',
+      browsers: {
+        chromium: { diffPercent: 0.5, missing: false },
+        // firefox and webkit intentionally omitted
+      } as MultiBrowserDiffResult['browsers'],
+    },
+  ]
+
+  const output = formatMultiBrowserReport(results, 1, ['chromium', 'firefox', 'webkit'])
+
+  assert.match(output, /\? missing/)
+})
+
+test('formatMultiBrowserReport shows missing when browser entry has missing flag', () => {
+  const results: MultiBrowserDiffResult[] = [
+    {
+      selector: 'p',
+      browsers: {
+        chromium: { diffPercent: 0, missing: true },
+        firefox: { diffPercent: 0, missing: true },
+        webkit: { diffPercent: 0, missing: true },
+      },
+    },
+  ]
+
+  const output = formatMultiBrowserReport(results, 1, ['chromium', 'firefox', 'webkit'])
+
+  assert.match(output, /\? missing/)
+  assert.match(output, /Summary: 0 passed, 0 failed/)
+})
+
+test('formatMultiBrowserReport shows all-pass summary when nothing exceeds threshold', () => {
+  const results: MultiBrowserDiffResult[] = [
+    {
+      selector: 'a',
+      browsers: {
+        chromium: { diffPercent: 0.1, missing: false },
+        firefox: { diffPercent: 0.2, missing: false },
+        webkit: { diffPercent: 0.3, missing: false },
+      },
+    },
+  ]
+
+  const output = formatMultiBrowserReport(results, 1, ['chromium', 'firefox', 'webkit'])
+
+  assert.match(output, /Summary: 3 passed, 0 failed/)
+})
+
 test('formatBaselineUpdateDone reports updated selectors and count', () => {
   const output = formatBaselineUpdateDone([
-    { selector: '.hero-title', path: 'snapshots/baseline-_hero-title-chromium.png' },
-    { selector: '.body-text', path: 'snapshots/baseline-_body-text-chromium.png' },
+    { selector: '.hero-title', path: 'snapshots/baseline-_hero-title-chromium.png', browser: 'chromium' },
+    { selector: '.body-text', path: 'snapshots/baseline-_body-text-chromium.png', browser: 'chromium' },
   ])
 
   assert.match(output, /Updating baselines\.\.\./)
