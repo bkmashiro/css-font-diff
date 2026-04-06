@@ -81,7 +81,7 @@ export async function updateBaselineSnapshots(
         for (const selector of selectors) {
           const el = await page.$(selector)
           if (!el) {
-            throw new Error(`Selector not found while updating baselines: ${selector}`)
+            throw new Error(`Selector not found: ${selector}`)
           }
 
           const outPath = selectorSnapshotPath(baselineName, selector, snapshotsDir, browserName)
