@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createRequire } from 'module'
 import { Command } from 'commander'
 import { captureSnapshot, updateBaselineSnapshots, ALL_BROWSERS, type BrowserName } from './capture.js'
 import { diffSnapshots, diffSnapshotsAllBrowsers } from './diff.js'
@@ -11,12 +12,15 @@ import {
 import { upsertDiffComment } from './github-comment.js'
 import { loadConfig, initConfig } from './config.js'
 
+const require = createRequire(import.meta.url)
+const { version } = require('../package.json') as { version: string }
+
 const program = new Command()
 
 program
   .name('css-font-diff')
   .description('Detect cross-browser font rendering differences with pixel-level precision')
-  .version('0.4.0')
+  .version(version)
 
 function parseBrowserOption(value: string): BrowserName[] {
   if (value === 'all') return ALL_BROWSERS
